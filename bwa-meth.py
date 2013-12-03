@@ -18,12 +18,11 @@ import sys
 import os
 import os.path as op
 
-from itertools import groupby, izip, count
+from itertools import groupby, izip
 from toolshed import nopen, reader
-from collections import defaultdict
 import string
 
-DEBUG = False
+DEBUG = True
 
 def comp(s, _comp=string.maketrans('ATCGNt', 'TAGCNa')):
     return s.translate(_comp)
@@ -42,17 +41,22 @@ def fasta_iter(fasta_name):
         header = header.next()[1:].strip()
         yield header, "".join(s.strip() for s in faiter.next())
 
-def convert_reads(fq, ga=False, out=sys.stdout):
+def convert_reads(fq, ga=False, out=sys.stdout, trim=(0, 0)):
     char_a, char_b = 'Ga' if ga else 'Ct'
+    if trim == (0, 0): trim = None
     print >>sys.stderr, "converting %s to %s in %s" % (char_a, char_b, fq)
     fq = nopen(fq)
     for (name, seq, _, qual) in izip(*[fq] * 4):
-        seq = seq.upper()
+        seq = seq.upper().rstrip('\n')
+        if trim is not None:
+            seq = seq[trim[0]:-trim[1]]
+            qual = qual.rstrip('\n')[trim[0]:-trim[1]] + '\n'
+
         # keep original sequence as name.
         name = " ".join((name.split(" ")[0],
-                        "YS:Z:" + seq.rstrip('\r\n') +
+                        "YS:Z:" + seq +
                         "\tYC:Z:" + char_a + char_b + '\n'))
-        out.write("".join((name, seq.replace(char_a, char_b) , "+\n", qual)))
+        out.write("".join((name, seq.replace(char_a, char_b) , "\n+\n", qual)))
 
 def convert_fasta(ref_fasta):
     print >>sys.stderr, "converting c2t in %s" % ref_fasta
@@ -143,7 +147,7 @@ class Bam(object):
 
     # This slow...
     def match_string(self, oseq, rseq):
-        o, r = [], []
+        o, r = [], [] # original, reference
         opos, rpos = 0, 0
         for n, cig in self.cigs():
             if cig == "I":
@@ -168,13 +172,25 @@ class Bam(object):
                 1/0
         return "".join(r), "".join(o)
 
-    def left_shift(self):
+    def left_shift(self, hard=False):
         left = 0
         for n, cig in self.cigs():
             if cig == "M": break
-            if cig != "H":
-                left += n
+            if not hard:
+                if cig != "H":
+                    left += n
+            else:
+                if cig == "H":
+                    left += n
         return left
+
+    def right_shift(self):
+        right = 0
+        for n, cig in reversed(list(self.cigs())):
+            if cig == "M": break
+            if cig == "H":
+                right += n
+        return -right or None
 
     @property
     def start(self):
@@ -193,11 +209,15 @@ class Bam(object):
         return [x for x in self.other if x.startswith("YC:Z:")]
 
 def rname(fq1, fq2):
-    name = lambda f:op.basename(op.splitext(f)[0])
-    return "".join(a for a, b in zip(name(fq1), name(fq2)) if a == b)
+    def name(f):
+        n = op.basename(op.splitext(f)[0])
+        if n.endswith('.fastq'): n = n[:-6]
+        if n.endswith(('.fq', '.r1', '.r2')): n = n[:-3]
+        return n
+    return "".join(a for a, b in zip(name(fq1), name(fq2)) if a == b) or 'bm'
 
 def bwa_meth(ref_fasta, fastqs, prefix=".", extra_args="", threads=1, mapq=0,
-        rg=None):
+             rg=None):
     assert len(fastqs) in (1, 2)
     return bwa_mem(ref_fasta, fastqs, extra_args, prefix=prefix,
                    threads=threads, mapq=mapq, rg=rg)
@@ -206,16 +226,15 @@ def bwa_meth(ref_fasta, fastqs, prefix=".", extra_args="", threads=1, mapq=0,
 def bwa_mem(fa, fqs, extra_args, prefix='bwa-meth', threads=1, mapq=0, rg=None):
     conv_fa = convert_fasta(fa)
     bwa_index(conv_fa)
-    if rg is None:
-        rg = rname(fqs[0], fqs[1])
+    if not rg is None and not rg.startswith('RG'):
         rg = '@RG\tID:{rg}\tSM:{rg}'.format(rg=rg)
 
     fq_str = " ".join(fqs)
 
-    cmd = ("|bwa mem -C -M -R '{rg}' -t {threads} {extra_args} {conv_fa} {fq_str}"
-                    ).format(**locals())
-    print >>sys.stderr, "running: %s" % cmd
-    cs, ts = tabulate(cmd, fa, prefix, conv_fa=conv_fa, mapq=mapq)
+    cmd = ("|bwa mem -U 20 -L 10 -CMR '{rg}' -t {threads} {extra_args} "
+           "{conv_fa} {fq_str}").format(**locals())
+    print >>sys.stderr, "running: %s" % cmd.lstrip("|")
+    tabulate(cmd, fa, prefix, conv_fa=conv_fa, mapq=mapq)
 
 
 def tabulate(pfile, fa, prefix, mapq=0, debug=DEBUG, conv_fa=None):
@@ -229,11 +248,8 @@ def tabulate(pfile, fa, prefix, mapq=0, debug=DEBUG, conv_fa=None):
            printed
     conv_fa: needed if debug is True
     """
-    cs = defaultdict(lambda: defaultdict(int))
-    ts = defaultdict(lambda: defaultdict(int))
-
     out = nopen(prefix + ".sam.gz", "w")
-    lengths = {}
+    PG = True
     for toks in reader("%s" % (pfile, ), header=False):
         if toks[0].startswith("@"):
             if toks[0].startswith("@SQ"):
@@ -241,12 +257,17 @@ def tabulate(pfile, fa, prefix, mapq=0, debug=DEBUG, conv_fa=None):
                 # we have f and r, only print out f
                 sn = sn.split(":")[1]
                 if sn.startswith('r'): continue
-                lengths[sn[1:]] = int(ln.split(":")[1])
                 toks[1] = toks[1].replace(":f", ":")
-                print >>out, "\t".join(toks)
+            if toks[0].startswith("@PG"): continue
+            print >>out, "\t".join(toks)
             continue
+        if PG:
+            #print >>out, "@PG\tprog:bwa-meth.py"
+            PG = False
+
         if toks[2] == "*": # chrom
             print >>out, "\t".join(toks)
+            continue
 
         aln = Bam(toks)
         orig_seq = aln.original_seq
@@ -254,108 +275,127 @@ def tabulate(pfile, fa, prefix, mapq=0, debug=DEBUG, conv_fa=None):
         # first letter of chrom is 'f' or 'r'
         direction = aln.chrom[0]
         aln.chrom = aln.chrom.lstrip('fr')
+        aln.other.append('YD:Z:' + direction)
 
         if not aln.is_mapped():
+            aln.seq = orig_seq
             print >>out, str(aln)
             continue
         assert direction in 'fr', (direction, toks[2], aln)
 
-        if direction == 'r':
-            aln.seq = comp(aln.seq)
-            orig_seq = comp(orig_seq)
-
-        if aln.chrom_mate[0] != "*":
+        if aln.chrom_mate[0] not in "*=":
             aln.chrom_mate = aln.chrom_mate[1:]
 
-        if aln.mapq < mapq:
-            print >>out, str(aln)
-            continue
-
-        #"""
-        left, right = aln.pos, aln.right_end() + 1
-        gseq = faseq(fa, aln.chrom, left, right).upper()
-
-        oseq = comp(orig_seq)[::-1] if aln.is_minus_read() else orig_seq
-
-        if debug:
-            cseq = faseq(conv_fa, direction + aln.chrom, left, right).upper()
-
-            print >>sys.stderr, "==", direction, aln.cigar, aln.flag, aln.is_minus_read(), aln.mapq, len(aln.seq)
-            print >>sys.stderr, "original seq     >>", oseq
-            print >>sys.stderr, "mapped   seq     >>", aln.seq
-            print >>sys.stderr, "converted genome >>", (aln.left_shift() * " ") + (comp(cseq) if direction == "r" else cseq)
-            print >>sys.stderr, "original  genome >>", (aln.left_shift() * " ") + gseq
-            print >>sys.stderr, ""
-            print >>sys.stderr, "\n".join(aln.match_string(oseq, gseq))
-            print >>sys.stderr, ""
-
-        # This section is quite slow. can optimize quite a bit.
-        ref, match = aln.match_string(oseq, gseq)
-        ref_letter = "G" if direction == "R" else "C"
-        for lpos, r, m in (lrm for lrm in izip(ref, match, count(left))
-                           if lrm[1] == ref_letter):
-            # TODO: check mismatches here since we know more
-            if r == m:
-                cs[aln.chrom][lpos] += 1
-            else: # should check C=>T, G=>A
-                ts[aln.chrom][lpos] += 1
-        #"""
-
+        # adjust the original seq to the cigar
+        l, r = aln.left_shift(hard=True), aln.right_shift()
+        if aln.is_plus_read():
+            aln.seq = orig_seq[l:r]
+        else:
+            aln.seq = comp(orig_seq)[::-1][l:r]
+        #if direction == 'r':
+        #    aln.flag ^= 0x10
         print >>out, str(aln)
-    #"""
+
     out.close()
     fmt = "{chrom}\t{pos}\t{pos}\t{pct_meth}\t{c}\t{t}"
-
-    chroms = sorted(set(ts.keys() + cs.keys()))
     try:
-        with nopen(prefix + ".summary.bed.gz", "w") as fh:
-            for chrom in chroms:
-                tsc, csc = ts[chrom], cs[chrom]
-                posns = set(tsc.keys())
-                posns.update(csc.keys())
-                ccs, tts = 0, 0
-                for pos in sorted(posns):
-                    c, t = tsc.get(pos, 0), csc.get(pos, 0)
-                    pct_meth = c / float(c + t)
-                    print >>fh, fmt.format(**locals())
-                    ccs += c
-                    tts += t
-                print >>sys.stderr, chrom, ccs / float(ccs + tts), ccs, tts
-        print >>sys.stderr, "wrote", fh.name
+        run("zless {sam} | samtools view -hbS - \
+                | samtools sort -m 3G - {bam} \
+                && samtools index {bam}.bam".format(sam=out.name, bam=prefix))
     except:
-        os.unlink(prefix + ".summary.bed.gz")
+        if op.exists(prefix + ".bam"):
+            os.unlink(prefix + ".bam")
+            if op.exists(prefix + ".bam.bai"):
+                os.unlink(prefix + ".bam.bai")
         raise
 
+def faseq(fa, chrom, start, end, cache=[None]):
+    """
+    this is called by pileup which is ordered by chrom
+    so we can speed things up by reading in a chrom at
+    a time into memory
+    """
+    if cache[0] is None or cache[0][0] != chrom:
+        seq = "".join(x.strip() for i, x in
+            enumerate(nopen("|samtools faidx %s %s" % (fa, chrom))) if i >
+            0).upper()
+        cache[0] = (chrom, seq)
+    chrom, seq = cache[0]
+    return seq[start - 1: end]
 
-    #"""
-    try:
-        run("zless %s | samtools view -hbS - \
-                | samtools sort -m 2G - %s \
-                && samtools index %s.bam" \
-                % (out.name, out.name[:-4], out.name[:-4]))
-    except:
-        os.unlink(out.name[:-4] + ".bam")
-        if op.exists(out.name[:-4] + ".bam.bai"):
-            os.unlink(out.name[:-4] + ".bam.bai")
-        raise
-    return cs, ts
+def get_context(seq5, forward):
+    """
+    >>> get_context('GACGG', True)
+    'CG+'                  
+    """
+    if forward:
+        assert seq5[2] == "C", seq5
+        if seq5[3] == "G": return "CG+"
+        if seq5[4] == "G": return "CHG+"
+        return "CHH+"
+    else: # reverse complement
+        assert seq5[2] == "G", seq5
+        if seq5[1] == "C": return "CG-"
+        if seq5[0] == "C": return "CHG-"
+        return "CHH-"
 
-def faseq(fa, chrom, start, end):
-    end = int(end) - 1
-    return "".join(x.strip() for i, x in \
-            enumerate(nopen("|samtools faidx %s %s:%s-%s" \
-            % (fa, chrom, int(start), end))) if i > 0)
+def summarize_pileup(fpileup, reference):
+
+    conversion = {"C": "T", "G": "A"}
+    print "#chrom\tpos1\tn_same\tn_converted\tcontext"
+
+    for toks in (l.rstrip("\r\n").split("\t") for l in nopen(fpileup)):
+        chrom, pos1, ref, coverage, bases, quals = toks
+        #if int(coverage) < 4: continue
+        pos1 = int(pos1)
+        if coverage == '0': continue
+        ref = ref.upper()
+        converted = conversion.get(ref)
+        if converted is None:
+            continue
+
+        s = faseq(reference, chrom, pos1 - 2, pos1 + 2)
+        ctx = get_context(s, ref == "C")
+        if not ctx.startswith("CG"): continue
+
+        # . == same on + strand, , == same on - strand
+
+        n_same_plus = sum(1 for b in bases if b in ".")
+        n_same_minus = sum(1 for b in bases if b in ",")
+        n_same = n_same_plus + n_same_minus
+
+        n_converted_plus = sum(1 for b in bases if b == converted)
+        n_converted_minus = sum(1 for b in bases if b == converted.lower())
+        n_converted = n_converted_plus + n_converted_minus
+        #n_converted = sum(1 for b in bases if b == converted)
+        # SNP
+        n_other = sum(1 for b in bases.lower() if b in "actg" and b !=
+                converted.lower())
+
+        if n_same < 10 or n_converted < 10: continue
+        pct = n_same / float(n_same + n_converted)
+        print bases
+
+        print "{chrom}\t{pos1}\t{pct}\t{n_same_plus}\t{n_same_minus}\t{n_converted_plus}\t{n_converted_minus}\t{ctx}\t{s}\t{ref}".format(**locals())
+
 
 def main(args):
 
+    #summarize_pileup('|samtools mpileup -f {reference} -BIQ 20 -q {map_q} {bams}'.format(
+    #    bams="bwa-meth.bam", map_q=20, reference="~/chr11.mm10.fa"), "~/chr11.mm10.fa")
+    #1/0
+
     if len(args) > 0 and args[0] in ("c2t", "g2a"):
         # catch these args to convert reads on the fly and stream to bwa
-        sys.exit(convert_reads(args[1], ga=args[0] == "g2a"))
+        trim = map(int, args[2].split(",")) if len(args) > 2 else (0, 0)
+        sys.exit(convert_reads(args[1], ga=args[0] == "g2a", trim=trim))
 
     import argparse
     p = argparse.ArgumentParser(__doc__)
     p.add_argument("--reference", help="reference fasta")
     p.add_argument("-t", "--threads", type=int, default=6)
+    p.add_argument("--trim", default="0,0", help="bases to trim from"
+    "start and end of each read to avoid bias. '2,2' is recommended")
     p.add_argument("-p", "--prefix", default="bwa-meth")
     p.add_argument("--read-group", help="read-group to add to bam in same"
             " format as to bwa: '@RG\tID:foo\tSM:bar'")
@@ -365,10 +405,11 @@ def main(args):
 
     args = p.parse_args(args)
     # for the 2nd file. use G => A and bwa's support for streaming.
-    conv_fqs = ["'<python %s %s %s'" % (__file__, conv, fq) for conv, fq in
+    conv_fqs = ["'<python %s %s %s %s'" % (__file__, conv, fq, args.trim) for conv, fq in
                                 zip(('c2t', 'g2a'), args.fastqs)]
     bwa_meth(args.reference, conv_fqs, prefix=args.prefix,
-            threads=args.threads, mapq=args.map_q, rg=args.read_group)
+            threads=args.threads, mapq=args.map_q, rg=args.read_group or
+            rname(*args.fastqs))
 
 if __name__ == "__main__":
     main(sys.argv[1:])
