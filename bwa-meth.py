@@ -22,8 +22,6 @@ from itertools import groupby, izip
 from toolshed import nopen, reader
 import string
 
-DEBUG = True
-
 def comp(s, _comp=string.maketrans('ATCGNt', 'TAGCNa')):
     return s.translate(_comp)
 
@@ -190,19 +188,16 @@ def bwa_mem(fa, fqs, extra_args, prefix='bwa-meth', threads=1, mapq=0, rg=None):
     cmd = ("|bwa mem -U 20 -L 10 -CMR '{rg}' -t {threads} {extra_args} "
            "{conv_fa} {fq_str}").format(**locals())
     print >>sys.stderr, "running: %s" % cmd.lstrip("|")
-    tabulate(cmd, fa, prefix, conv_fa=conv_fa, mapq=mapq)
+    tabulate(cmd, fa, prefix, mapq=mapq)
 
 
-def tabulate(pfile, fa, prefix, mapq=0, debug=DEBUG, conv_fa=None):
+def tabulate(pfile, fa, prefix, mapq=0):
     """
     pfile: either a file or a |process to generate sam output
     fa: the reference fasta
     prefix: the output prefix or directory
     mapq: only tabulate methylation for reads with at least this mapping
           quality
-    debug: if True, the alignments and internal stuff to calculate c=>t are
-           printed
-    conv_fa: needed if debug is True
     """
     out = nopen(prefix + ".sam.gz", "w")
     PG = True
