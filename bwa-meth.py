@@ -199,7 +199,10 @@ def tabulate(pfile, fa, prefix, mapq=0):
     mapq: only tabulate methylation for reads with at least this mapping
           quality
     """
-    out = nopen(prefix + ".sam.gz", "w")
+    cmd = ("samtools view -bS - | samtools sort -m 3G - {bam}"
+            " && samtools index {bam}.bam").format(bam=prefix)
+    print >>sys.stderr, "writing to:", cmd
+    out = nopen("|" + cmd, 'w').stdin
     PG = True
     for toks in reader("%s" % (pfile, ), header=False):
         if toks[0].startswith("@"):
@@ -210,7 +213,7 @@ def tabulate(pfile, fa, prefix, mapq=0):
                 if sn.startswith('r'): continue
                 toks[1] = toks[1].replace(":f", ":")
             if toks[0].startswith("@PG"): continue
-            print >>out, "\t".join(toks)
+            out.write("\t".join(toks) + "\n")
             continue
         if PG:
             #print >>out, "@PG\tprog:bwa-meth.py"
@@ -249,16 +252,6 @@ def tabulate(pfile, fa, prefix, mapq=0):
         print >>out, str(aln)
 
     out.close()
-    try:
-        run("zless {sam} | samtools view -hbS - \
-                | samtools sort -m 3G - {bam} \
-                && samtools index {bam}.bam".format(sam=out.name, bam=prefix))
-    except:
-        if op.exists(prefix + ".bam"):
-            os.unlink(prefix + ".bam")
-            if op.exists(prefix + ".bam.bai"):
-                os.unlink(prefix + ".bam.bai")
-        raise
 
 def faseq(fa, chrom, start, end, cache=[None]):
     """
