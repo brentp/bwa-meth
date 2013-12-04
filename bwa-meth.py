@@ -136,52 +136,12 @@ class Bam(object):
         for g, n in cig_iter:
             yield int("".join(n)), "".join(cig_iter.next()[1])
 
-    @classmethod
-    def cig_len(self, cigs):
-        return sum(c[0] for c in cigs if c[1] in ("M", "D", "N", "EQ", "X", "P"))
-
-    def right_end(self):
-        # http://www.biostars.org/p/1680/#1682
-        length = sum(c[0] for c in self.cigs() if c[1] in ("M", "D", "N", "EQ", "X", "P"))
-        return self.start + length - 1
-
-    # This slow...
-    def match_string(self, oseq, rseq):
-        o, r = [], [] # original, reference
-        opos, rpos = 0, 0
-        for n, cig in self.cigs():
-            if cig == "I":
-                r.append('.' * n)
-                o.append(oseq[opos:opos + n])
-                opos += n
-            elif cig in "SH":
-                o.append(oseq[opos:opos + n])
-                r.append("." * n)
-                opos += n
-
-            elif cig == "D":
-                o.append("." * n)
-                r.append(rseq[rpos:rpos + n])
-                rpos += n
-            elif cig in ("M",):
-                o.append(oseq[opos:opos + n])
-                r.append(rseq[rpos:rpos + n])
-                opos += n
-                rpos += n
-            else:
-                1/0
-        return "".join(r), "".join(o)
-
-    def left_shift(self, hard=False):
+    def left_shift(self):
         left = 0
         for n, cig in self.cigs():
             if cig == "M": break
-            if not hard:
-                if cig != "H":
-                    left += n
-            else:
-                if cig == "H":
-                    left += n
+            if cig == "H":
+                left += n
         return left
 
     def right_shift(self):
@@ -195,10 +155,6 @@ class Bam(object):
     @property
     def start(self):
         return self.pos
-
-    @property
-    def len(self):
-        return abs(self.tlen)
 
     @property
     def original_seq(self):
@@ -265,12 +221,13 @@ def tabulate(pfile, fa, prefix, mapq=0, debug=DEBUG, conv_fa=None):
             #print >>out, "@PG\tprog:bwa-meth.py"
             PG = False
 
-        if toks[2] == "*": # chrom
-            print >>out, "\t".join(toks)
-            continue
-
         aln = Bam(toks)
         orig_seq = aln.original_seq
+        # don't need this any more.
+        aln.other = [x for x in aln.other if not x.startswith('YS:Z')]
+        if aln.chrom == "*": # chrom
+            print >>out, str(aln)
+            continue
 
         # first letter of chrom is 'f' or 'r'
         direction = aln.chrom[0]
@@ -287,7 +244,7 @@ def tabulate(pfile, fa, prefix, mapq=0, debug=DEBUG, conv_fa=None):
             aln.chrom_mate = aln.chrom_mate[1:]
 
         # adjust the original seq to the cigar
-        l, r = aln.left_shift(hard=True), aln.right_shift()
+        l, r = aln.left_shift(), aln.right_shift()
         if aln.is_plus_read():
             aln.seq = orig_seq[l:r]
         else:
@@ -297,7 +254,6 @@ def tabulate(pfile, fa, prefix, mapq=0, debug=DEBUG, conv_fa=None):
         print >>out, str(aln)
 
     out.close()
-    fmt = "{chrom}\t{pos}\t{pos}\t{pct_meth}\t{c}\t{t}"
     try:
         run("zless {sam} | samtools view -hbS - \
                 | samtools sort -m 3G - {bam} \
@@ -359,7 +315,6 @@ def summarize_pileup(fpileup, reference):
         if not ctx.startswith("CG"): continue
 
         # . == same on + strand, , == same on - strand
-
         n_same_plus = sum(1 for b in bases if b in ".")
         n_same_minus = sum(1 for b in bases if b in ",")
         n_same = n_same_plus + n_same_minus
