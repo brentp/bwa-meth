@@ -14,7 +14,7 @@ One time only, you need to index a reference sequence.
 
     python bwa-meth.py index $REFERENCE
 
-If you reference is some.fasta, this will create some.c2t.fasta
+If your reference is `some.fasta`, this will create `some.c2t.fasta`
 and all of the bwa indexes associated with it.
 
 Align
@@ -25,7 +25,7 @@ Align
          --reference $REFERENCE \
          $READ1 $READ2
          
-This will create $PREFIX.bam and $PREFIX.bam.bai the output will pass
+This will create $PREFIX.bam and $PREFIX.bam.bai. The output will pass
 Picard-tools ValidateSam.
 
 Tabulate
