@@ -132,6 +132,10 @@ class Bam(object):
         for g, n in cig_iter:
             yield int("".join(n)), "".join(cig_iter.next()[1])
 
+    def cig_len(self):
+        return sum(c[0] for c in self.cigs() if c[1] in
+                   ("M", "D", "N", "EQ", "X", "P"))
+
     def left_shift(self):
         left = 0
         for n, cig in self.cigs():
@@ -194,8 +198,12 @@ def tabulate(pfile, fa, prefix, mapq=0):
     mapq: only tabulate methylation for reads with at least this mapping
           quality
     """
-    cmd = ("samtools view -bS - | samtools sort -m 3G -@3 - {bam}"
-            " && samtools index {bam}.bam").format(bam=prefix)
+    cmd = ("set -o pipefail; samtools view -bS - "
+           "| samtools sort -nm 3G -@3 - {bam} "
+           "&& samtools fixmate {bam}.bam {bam}.fix.bam "
+           "&& samtools sort -m3G -@3 {bam}.fix.bam {bam} "
+           "&& samtools index {bam}.bam "
+           "&& rm -f {bam}.fix.bam").format(bam=prefix)
     print >>sys.stderr, "writing to:", cmd
     out = nopen("|" + cmd, 'w').stdin
     PG = True
@@ -203,12 +211,13 @@ def tabulate(pfile, fa, prefix, mapq=0):
     for toks in reader("%s" % (pfile, ), header=False):
         if toks[0].startswith("@"):
             if toks[0].startswith("@SQ"):
-                sq, sn, ln = toks
+                sq, sn, ln = toks  # @SQ    SN:fchr11    LN:122082543
                 # we have f and r, only print out f
-                sn = sn.split(":")[1]
-                if sn.startswith('r'): continue
-                toks[1] = toks[1].replace(":f", ":")
-                lengths[sn[1:]] = int(ln.split(":")[1])
+                chrom = sn.split(":")[1]
+                if chrom.startswith('r'): continue
+                chrom = chrom[1:]
+                lengths[chrom] = int(ln.split(":")[1])
+                toks = ["%s\tSN:%s\t%s" % (sq, chrom, ln)]
             if toks[0].startswith("@PG"): continue
             out.write("\t".join(toks) + "\n")
             continue
@@ -217,6 +226,7 @@ def tabulate(pfile, fa, prefix, mapq=0):
             PG = False
 
         aln = Bam(toks)
+
         orig_seq = aln.original_seq
         # don't need this any more.
         aln.other = [x for x in aln.other if not x.startswith('YS:Z')]
@@ -236,21 +246,31 @@ def tabulate(pfile, fa, prefix, mapq=0):
         aln.other.append('YD:Z:' + direction)
 
         if aln.chrom_mate[0] not in "*=":
+            mate_direction = aln.chrom_mate[0]
             aln.chrom_mate = aln.chrom_mate[1:]
+            if mate_direction == 'r':
+                aln.flag ^= 0x20
 
         # adjust the original seq to the cigar
         l, r = aln.left_shift(), aln.right_shift()
         if aln.is_plus_read():
             aln.seq = orig_seq[l:r]
         else:
-            #aln.seq = comp(orig_seq)[::-1][l:r]
             aln.seq = comp(orig_seq[::-1][l:r])
         if direction == 'r':
             aln.flag ^= 0x10
+            aln.flag ^= 0x20
+
             aln.seq = comp(aln.seq[::-1])
-            aln.pos = lengths[aln.chrom] - aln.pos - len(aln.seq) + 2
-            #aln.read += "__R"
+            aln.pos = lengths[aln.chrom] - aln.pos - aln.cig_len() + 2
             aln.cigar = "".join(["%s%s" % c for c in aln.cigs()][::-1])
+
+            if aln.chrom_mate != "*":
+                aln.pos_mate = int(aln.pos_mate)
+                # this only works when the other read has same cigar as this one.
+                # so we just send to samtools fixmate.
+                aln.pos_mate = str(lengths[aln.chrom] - aln.pos_mate + 2 - aln.cig_len())
+
         print >>out, str(aln)
     out.close()
 
@@ -326,7 +346,7 @@ def summarize_pileup(fpileup, reference):
 def main(args):
 
     #summarize_pileup('|samtools mpileup -f {reference} -BIQ 20 -q {map_q} {bams}'.format(
-    #    bams="bwa-meth.bam", map_q=20, reference="~/chr11.mm10.fa"), "~/chr11.mm10.fa")
+    #    bams="bwa-meth-flip.bam", map_q=20, reference="~/chr11.mm10.fa"), "~/chr11.mm10.fa")
     #1/0
 
     if len(args) > 0 and args[0] == "c2t":
