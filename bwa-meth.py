@@ -19,10 +19,10 @@ import os
 import os.path as op
 
 from itertools import groupby, izip
-from toolshed import nopen, reader
+from toolshed import nopen, reader, is_newer_b
 import string
 
-def comp(s, _comp=string.maketrans('ATCGNt', 'TAGCNa')):
+def comp(s, _comp=string.maketrans('ATCG', 'TAGC')):
     return s.translate(_comp)
 
 def wrap(text, width=100): # much faster than textwrap
@@ -37,24 +37,22 @@ def fasta_iter(fasta_name):
     faiter = (x[1] for x in groupby(fh, lambda line: line[0] == ">"))
     for header in faiter:
         header = header.next()[1:].strip()
-        yield header, "".join(s.strip() for s in faiter.next())
+        yield header, "".join(s.strip() for s in faiter.next()).upper()
 
-def convert_reads(fq, ga=False, out=sys.stdout, trim=(0, 0)):
-    char_a, char_b = 'Ga' if ga else 'Ct'
-    if trim == (0, 0): trim = None
-    print >>sys.stderr, "converting %s to %s in %s" % (char_a, char_b, fq)
-    fq = nopen(fq)
-    for (name, seq, _, qual) in izip(*[fq] * 4):
-        seq = seq.upper().rstrip('\n')
-        if trim is not None:
-            seq = seq[trim[0]:-trim[1]]
-            qual = qual.rstrip('\n')[trim[0]:-trim[1]] + '\n'
-
-        # keep original sequence as name.
-        name = " ".join((name.split(" ")[0],
-                        "YS:Z:" + seq +
-                        "\tYC:Z:" + char_a + char_b + '\n'))
-        out.write("".join((name, seq.replace(char_a, char_b) , "\n+\n", qual)))
+def convert_reads(fq1, fq2, out=sys.stdout):
+    print >>sys.stderr, "converting reads in %s,%s" % (fq1, fq2)
+    fq1, fq2 = nopen(fq1), nopen(fq2)
+    q1_iter = izip(*[fq1] * 4)
+    q2_iter = izip(*[fq2] * 4)
+    for pair in izip(q1_iter, q2_iter):
+        for read_i, (name, seq, _, qual) in enumerate(pair):
+            seq = seq.upper().rstrip('\n')
+            char_a, char_b = ['CT', 'GA'][read_i]
+            # keep original sequence as name.
+            name = " ".join((name.split(" ")[0],
+                            "YS:Z:" + seq +
+                            "\tYC:Z:" + char_a + char_b + '\n'))
+            out.write("".join((name, seq.replace(char_a, char_b) , "\n+\n", qual)))
 
 def convert_fasta(ref_fasta):
     print >>sys.stderr, "converting c2t in %s" % ref_fasta
@@ -63,21 +61,21 @@ def convert_fasta(ref_fasta):
     try:
         fh = open(out_fa, "w")
         for header, seq in fasta_iter(ref_fasta):
-            seq = seq.upper()
-            print >>fh, ">f%s" % header
-            for line in wrap(seq.replace("C", "t")):
-                print >>fh, line
             print >>fh, ">r%s" % header
-            for line in wrap(comp(seq).replace("C", "t")):
+            for line in wrap(seq.replace("G", "A")):
+                print >>fh, line
+
+            print >>fh, ">f%s" % header
+            for line in wrap(seq.replace("C", "T")):
                 print >>fh, line
         fh.close()
     except:
-        fh.close() or os.unlink(out_fa)
+        fh.close(); os.unlink(out_fa)
         raise
     return out_fa
 
 def bwa_index(fa):
-    if op.exists(fa + '.amb'):
+    if is_newer_b(fa, (fa + '.amb', fa + '.sa')):
         return
     print >>sys.stderr, "indexing: %s" % fa
     try:
@@ -170,23 +168,20 @@ def rname(fq1, fq2):
         return n
     return "".join(a for a, b in zip(name(fq1), name(fq2)) if a == b) or 'bm'
 
-def bwa_meth(ref_fasta, fastqs, prefix=".", extra_args="", threads=1, mapq=0,
-             rg=None):
-    assert len(fastqs) in (1, 2)
-    return bwa_mem(ref_fasta, fastqs, extra_args, prefix=prefix,
+def bwa_meth(ref_fasta, merged_fastqs, prefix=".", extra_args="", threads=1,
+             mapq=0, rg=None):
+    return bwa_mem(ref_fasta, merged_fastqs, extra_args, prefix=prefix,
                    threads=threads, mapq=mapq, rg=rg)
 
 
-def bwa_mem(fa, fqs, extra_args, prefix='bwa-meth', threads=1, mapq=0, rg=None):
+def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, mapq=0, rg=None):
     conv_fa = convert_fasta(fa)
     bwa_index(conv_fa)
     if not rg is None and not rg.startswith('RG'):
         rg = '@RG\tID:{rg}\tSM:{rg}'.format(rg=rg)
 
-    fq_str = " ".join(fqs)
-
-    cmd = ("|bwa mem -U 20 -L 10 -CMR '{rg}' -t {threads} {extra_args} "
-           "{conv_fa} {fq_str}").format(**locals())
+    cmd = ("|bwa mem -L 25 -pCMR '{rg}' -t {threads} {extra_args} "
+           "{conv_fa} {mfq}").format(**locals())
     print >>sys.stderr, "running: %s" % cmd.lstrip("|")
     tabulate(cmd, fa, prefix, mapq=mapq)
 
@@ -199,11 +194,12 @@ def tabulate(pfile, fa, prefix, mapq=0):
     mapq: only tabulate methylation for reads with at least this mapping
           quality
     """
-    cmd = ("samtools view -bS - | samtools sort -m 3G - {bam}"
+    cmd = ("samtools view -bS - | samtools sort -m 3G -@3 - {bam}"
             " && samtools index {bam}.bam").format(bam=prefix)
     print >>sys.stderr, "writing to:", cmd
     out = nopen("|" + cmd, 'w').stdin
     PG = True
+    lengths = {}
     for toks in reader("%s" % (pfile, ), header=False):
         if toks[0].startswith("@"):
             if toks[0].startswith("@SQ"):
@@ -212,6 +208,7 @@ def tabulate(pfile, fa, prefix, mapq=0):
                 sn = sn.split(":")[1]
                 if sn.startswith('r'): continue
                 toks[1] = toks[1].replace(":f", ":")
+                lengths[sn[1:]] = int(ln.split(":")[1])
             if toks[0].startswith("@PG"): continue
             out.write("\t".join(toks) + "\n")
             continue
@@ -223,20 +220,20 @@ def tabulate(pfile, fa, prefix, mapq=0):
         orig_seq = aln.original_seq
         # don't need this any more.
         aln.other = [x for x in aln.other if not x.startswith('YS:Z')]
-        if aln.chrom == "*": # chrom
+        if aln.chrom == "*":  # chrom
             print >>out, str(aln)
             continue
 
         # first letter of chrom is 'f' or 'r'
         direction = aln.chrom[0]
         aln.chrom = aln.chrom.lstrip('fr')
-        aln.other.append('YD:Z:' + direction)
 
         if not aln.is_mapped():
             aln.seq = orig_seq
             print >>out, str(aln)
             continue
         assert direction in 'fr', (direction, toks[2], aln)
+        aln.other.append('YD:Z:' + direction)
 
         if aln.chrom_mate[0] not in "*=":
             aln.chrom_mate = aln.chrom_mate[1:]
@@ -246,11 +243,15 @@ def tabulate(pfile, fa, prefix, mapq=0):
         if aln.is_plus_read():
             aln.seq = orig_seq[l:r]
         else:
-            aln.seq = comp(orig_seq)[::-1][l:r]
-        #if direction == 'r':
-        #    aln.flag ^= 0x10
+            #aln.seq = comp(orig_seq)[::-1][l:r]
+            aln.seq = comp(orig_seq[::-1][l:r])
+        if direction == 'r':
+            aln.flag ^= 0x10
+            aln.seq = comp(aln.seq[::-1])
+            aln.pos = lengths[aln.chrom] - aln.pos - len(aln.seq) + 2
+            #aln.read += "__R"
+            aln.cigar = "".join(["%s%s" % c for c in aln.cigs()][::-1])
         print >>out, str(aln)
-
     out.close()
 
 def faseq(fa, chrom, start, end, cache=[None]):
@@ -328,28 +329,25 @@ def main(args):
     #    bams="bwa-meth.bam", map_q=20, reference="~/chr11.mm10.fa"), "~/chr11.mm10.fa")
     #1/0
 
-    if len(args) > 0 and args[0] in ("c2t", "g2a"):
+    if len(args) > 0 and args[0] == "c2t":
         # catch these args to convert reads on the fly and stream to bwa
-        trim = map(int, args[2].split(",")) if len(args) > 2 else (0, 0)
-        sys.exit(convert_reads(args[1], ga=args[0] == "g2a", trim=trim))
+        sys.exit(convert_reads(args[1], args[2]))
 
     import argparse
     p = argparse.ArgumentParser(__doc__)
     p.add_argument("--reference", help="reference fasta")
     p.add_argument("-t", "--threads", type=int, default=6)
-    p.add_argument("--trim", default="0,0", help="bases to trim from"
-    "start and end of each read to avoid bias. '2,2' is recommended")
     p.add_argument("-p", "--prefix", default="bwa-meth")
     p.add_argument("--read-group", help="read-group to add to bam in same"
-            " format as to bwa: '@RG\tID:foo\tSM:bar'")
+            " format as to bwa: '@RG\\tID:foo\\tSM:bar'")
     p.add_argument("--map-q", type=int, default=10, help="only tabulate "
                    "methylation for reads with at least this mapping quality")
     p.add_argument("fastqs", nargs="+", help="bs-seq fastqs to align")
 
     args = p.parse_args(args)
     # for the 2nd file. use G => A and bwa's support for streaming.
-    conv_fqs = ["'<python %s %s %s %s'" % (__file__, conv, fq, args.trim) for conv, fq in
-                                zip(('c2t', 'g2a'), args.fastqs)]
+    conv_fqs = "'<python %s c2t %s %s'" % (__file__, args.fastqs[0],
+                                                      args.fastqs[1])
     bwa_meth(args.reference, conv_fqs, prefix=args.prefix,
             threads=args.threads, mapq=args.map_q, rg=args.read_group or
             rname(*args.fastqs))
