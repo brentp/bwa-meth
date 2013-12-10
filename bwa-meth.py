@@ -17,10 +17,13 @@ cs, ts, and percent methylation at each site.
 import sys
 import os
 import os.path as op
+import argparse
 
 from itertools import groupby, izip
 from toolshed import nopen, reader, is_newer_b
 import string
+
+class BWAMethException(Exception): pass
 
 def comp(s, _comp=string.maketrans('ATCG', 'TAGC')):
     return s.translate(_comp)
@@ -55,9 +58,12 @@ def convert_reads(fq1, fq2, out=sys.stdout):
             out.write("".join((name, seq.replace(char_a, char_b) , "\n+\n", qual)))
 
 def convert_fasta(ref_fasta):
-    print >>sys.stderr, "converting c2t in %s" % ref_fasta
     out_fa = op.splitext(ref_fasta)[0] + ".c2t.fa"
-    if op.exists(out_fa): return out_fa
+    msg = "c2t in %s to %s" % (ref_fasta, out_fa)
+    if is_newer_b(ref_fasta, out_fa):
+        print >>sys.stderr, "already converted", msg
+        return out_fa
+    print >>sys.stderr, "converting", msg
     try:
         fh = open(out_fa, "w")
         for header, seq in fasta_iter(ref_fasta):
@@ -73,6 +79,7 @@ def convert_fasta(ref_fasta):
         fh.close(); os.unlink(out_fa)
         raise
     return out_fa
+
 
 def bwa_index(fa):
     if is_newer_b(fa, (fa + '.amb', fa + '.sa')):
@@ -95,10 +102,6 @@ class Bam(object):
         self.flag = int(self.flag)
         self.pos = int(self.pos)
         self.tlen = int(float(self.tlen))
-        try:
-            self.mapq = int(self.mapq)
-        except ValueError:
-            pass
 
     def __repr__(self):
         return "Bam({chr}:{start}:{read}".format(chr=self.chrom,
@@ -172,31 +175,26 @@ def rname(fq1, fq2):
         return n
     return "".join(a for a, b in zip(name(fq1), name(fq2)) if a == b) or 'bm'
 
-def bwa_meth(ref_fasta, merged_fastqs, prefix=".", extra_args="", threads=1,
-             mapq=0, rg=None):
-    return bwa_mem(ref_fasta, merged_fastqs, extra_args, prefix=prefix,
-                   threads=threads, mapq=mapq, rg=rg)
 
-
-def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, mapq=0, rg=None):
+def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None):
     conv_fa = convert_fasta(fa)
-    bwa_index(conv_fa)
+    if not is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.sa')):
+        raise BWAMethException("first run bwa-meth.py index %s" % fa)
+
     if not rg is None and not rg.startswith('RG'):
         rg = '@RG\tID:{rg}\tSM:{rg}'.format(rg=rg)
 
     cmd = ("|bwa mem -L 25 -pCMR '{rg}' -t {threads} {extra_args} "
            "{conv_fa} {mfq}").format(**locals())
     print >>sys.stderr, "running: %s" % cmd.lstrip("|")
-    tabulate(cmd, fa, prefix, mapq=mapq)
+    as_bam(cmd, fa, prefix)
 
 
-def tabulate(pfile, fa, prefix, mapq=0):
+def as_bam(pfile, fa, prefix):
     """
     pfile: either a file or a |process to generate sam output
     fa: the reference fasta
     prefix: the output prefix or directory
-    mapq: only tabulate methylation for reads with at least this mapping
-          quality
     """
     cmd = ("set -o pipefail; samtools view -bS - "
            "| samtools sort -nm 3G -@3 - {bam} "
@@ -262,6 +260,7 @@ def tabulate(pfile, fa, prefix, mapq=0):
             aln.flag ^= 0x20
 
             aln.seq = comp(aln.seq[::-1])
+            aln.qual = aln.qual[::-1]
             aln.pos = lengths[aln.chrom] - aln.pos - aln.cig_len() + 2
             aln.cigar = "".join(["%s%s" % c for c in aln.cigs()][::-1])
 
@@ -304,13 +303,67 @@ def get_context(seq5, forward):
         if seq5[0] == "C": return "CHG-"
         return "CHH-"
 
-def summarize_pileup(fpileup, reference):
+def tabulate_main(args):
+    __doc__ = """
+    tabulate methylation from bwa-meth.py call
+    """
+    p = argparse.ArgumentParser(__doc__)
+    p.add_argument("--reference", help="reference fasta")
+    p.add_argument("-t", "--threads", type=int, default=6)
+    p.add_argument("--map-q", type=int, default=10, help="only tabulate "
+                   "methylation for reads with at least this mapping quality")
+    p.add_argument("bams", nargs="+")
+
+    a = p.parse_args(args)
+    assert os.path.exists(a.reference)
+
+    cmd = "|samtools mpileup -f {reference} -d100000 -BIQ 20 -q {map_q} {bams}"
+    cmd = cmd.format(reference=a.reference, map_q=a.map_q, bams=" ".join(a.bams))
+    print >>sys.stderr, "generating pileup with command:", cmd
+    tabulate_methylation(cmd, a.reference)
+
+def call_single_pileup(chrom, pos1, ref, coverage, bases, quals):
+    """
+    With directional protocol, we know:
+        1. methylable site has 'G' on the opposite strand
+        2. methylated site has 'C' on the + strand
+        3. un-methylated site has 'T' on the + strand
+        4. SNP has base(minus) != complement(reference)
+
+    Return value is:
+        {'p_snp': 0.5,
+        'p_methylable': 0.5,
+        'p_methylated|methylable': 0.5,
+        'C': 20,
+        'T': 20}
+
+    p_methylable = n(G-) / n(total-)
+    p_methylated|methylable = n(C+) / n(C+ + T+)
+    p_snp = n(- != comp(ref)) / n(total -)
+
+    """
+    from collections import Counter
+    print bases
+
+    ref = ref.upper()
+    plus  = Counter(b for b in bases if b != "," and b == b.upper())
+    minus = Counter(b for b in bases if b != "." and b == b.lower())
+
+    print plus
+    print minus
+    1/0
+
+
+
+
+def tabulate_methylation(fpileup, reference):
 
     conversion = {"C": "T", "G": "A"}
     print "#chrom\tpos1\tn_same\tn_converted\tcontext"
 
     for toks in (l.rstrip("\r\n").split("\t") for l in nopen(fpileup)):
         chrom, pos1, ref, coverage, bases, quals = toks
+        call_single_pileup(*toks)
         #if int(coverage) < 4: continue
         pos1 = int(pos1)
         if coverage == '0': continue
@@ -345,32 +398,31 @@ def summarize_pileup(fpileup, reference):
 
 def main(args):
 
-    #summarize_pileup('|samtools mpileup -f {reference} -BIQ 20 -q {map_q} {bams}'.format(
-    #    bams="bwa-meth-flip.bam", map_q=20, reference="~/chr11.mm10.fa"), "~/chr11.mm10.fa")
-    #1/0
+    if len(args) > 0 and args[0] == "index":
+        sys.exit(bwa_index(convert_fasta(args[1])))
 
     if len(args) > 0 and args[0] == "c2t":
-        # catch these args to convert reads on the fly and stream to bwa
         sys.exit(convert_reads(args[1], args[2]))
 
-    import argparse
+    if len(args) > 0 and args[0] == "tabulate":
+        sys.exit(tabulate_main(args[1:]))
+
     p = argparse.ArgumentParser(__doc__)
     p.add_argument("--reference", help="reference fasta")
     p.add_argument("-t", "--threads", type=int, default=6)
     p.add_argument("-p", "--prefix", default="bwa-meth")
     p.add_argument("--read-group", help="read-group to add to bam in same"
             " format as to bwa: '@RG\\tID:foo\\tSM:bar'")
-    p.add_argument("--map-q", type=int, default=10, help="only tabulate "
-                   "methylation for reads with at least this mapping quality")
     p.add_argument("fastqs", nargs="+", help="bs-seq fastqs to align")
 
     args = p.parse_args(args)
     # for the 2nd file. use G => A and bwa's support for streaming.
     conv_fqs = "'<python %s c2t %s %s'" % (__file__, args.fastqs[0],
                                                       args.fastqs[1])
-    bwa_meth(args.reference, conv_fqs, prefix=args.prefix,
-            threads=args.threads, mapq=args.map_q, rg=args.read_group or
-            rname(*args.fastqs))
+
+    bwa_mem(args.reference, conv_fqs, "", prefix=args.prefix,
+             threads=args.threads, rg=args.read_group or
+             rname(*args.fastqs))
 
 if __name__ == "__main__":
     main(sys.argv[1:])
