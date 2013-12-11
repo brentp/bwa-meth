@@ -7,6 +7,9 @@ This only works for reads from the directional protocol (most common).
 Uses the method employed by methylcoder and Bismark of using *in silico*
 conversion of all C's to T's in both reference and reads.
 
+Recovers the original read (needed to tabulate methylation) by attaching it
+as a comment which bwa appends as a tag to the read.
+
 usage
 =====
 
