@@ -4,6 +4,9 @@ bwa-meth
 align BS-Seq reads and tabulate methylation without intermediate temp files.
 This only works for reads from the directional protocol (most common).
 
+Uses the method employed by methylcoder and Bismark of using **in silico**
+conversion of all C's to T's in both reference and reads.
+
 usage
 =====
 
@@ -26,7 +29,10 @@ Align
          $READ1 $READ2
          
 This will create $PREFIX.bam and $PREFIX.bam.bai. The output will pass
-Picard-tools ValidateSam.
+Picard-tools ValidateSam (thanks to samtools fixmate) and will have the
+reads in the correct location (flipped from G => A reference).
+
+Handles clipped alignments and indels correctly.
 
 Tabulate
 --------
