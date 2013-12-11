@@ -4,7 +4,7 @@ bwa-meth
 align BS-Seq reads and tabulate methylation without intermediate temp files.
 This only works for reads from the directional protocol (most common).
 
-Uses the method employed by methylcoder and Bismark of using **in silico**
+Uses the method employed by methylcoder and Bismark of using *in silico*
 conversion of all C's to T's in both reference and reads.
 
 usage
@@ -40,8 +40,8 @@ The command above will be sent to BWA to do the work as something like:
     bwa mem -L 25 -pCM -t 15  $REFERENCE.c2t.fa \
             '<python bwa-meth.py c2t $FQ1 $FQ2'
 
-So the converted reads are streamed directly to bwa and *never written
-to disk*. The output from that is modified by `bwa-meth.py` and streamed
+So the converted reads are streamed directly to bwa and **never written
+to disk**. The output from that is modified by `bwa-meth.py` and streamed
 straight to a bam file.
 
 Tabulate
@@ -65,7 +65,10 @@ E.g.:
 
 That will give both CpG's and SNPs. BisSNP recommends performing
 the usual GATK preprocessing steps before this (BSQR, indel realignment).
+You can also align with `bwa-meth.py` with the `--calmd` flag to have samtools
+do it's BAQ.
+
 
 This software may use the samtools SNP calling pipeline at some point
-to do something similar.
+to do something similar to BisSNP.
 
