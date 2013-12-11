@@ -34,6 +34,15 @@ reads in the correct location (flipped from G => A reference).
 
 Handles clipped alignments and indels correctly.
 
+The command above will be sent to BWA to do the work as something like:
+
+    bwa mem -L 25 -pCM -t 15  $REFERENCE.c2t.fa \
+            '<python bwa-meth.py c2t $READ1 $READ2'
+
+So the converted reads are streamed directly to bwa and *never written
+to disk*. The output from that is modified by `bwa-meth.py` and streamed
+straight to a bam file.
+
 Tabulate
 --------
 
