@@ -57,6 +57,7 @@ def convert_reads(fq1, fq2, out=sys.stdout):
                             "\tYC:Z:" + char_a + char_b + '\n'))
             out.write("".join((name, seq.replace(char_a, char_b) , "\n+\n", qual)))
 
+
 def convert_fasta(ref_fasta):
     out_fa = op.splitext(ref_fasta)[0] + ".c2t.fa"
     msg = "c2t in %s to %s" % (ref_fasta, out_fa)
@@ -176,7 +177,8 @@ def rname(fq1, fq2):
     return "".join(a for a, b in zip(name(fq1), name(fq2)) if a == b) or 'bm'
 
 
-def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None):
+def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None,
+            calmd=False):
     conv_fa = convert_fasta(fa)
     if not is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.sa')):
         raise BWAMethException("first run bwa-meth.py index %s" % fa)
@@ -187,22 +189,28 @@ def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None):
     cmd = ("|bwa mem -L 25 -pCMR '{rg}' -t {threads} {extra_args} "
            "{conv_fa} {mfq}").format(**locals())
     print >>sys.stderr, "running: %s" % cmd.lstrip("|")
-    as_bam(cmd, fa, prefix)
+    as_bam(cmd, fa, prefix, calmd)
 
 
-def as_bam(pfile, fa, prefix):
+def as_bam(pfile, fa, prefix, calmd=False):
     """
     pfile: either a file or a |process to generate sam output
     fa: the reference fasta
     prefix: the output prefix or directory
     """
-    cmd = ("set -o pipefail; samtools view -bS - "
+    calmd = ("samtools calmd -AbEr {bam}.fix.bam {fa} |"
+            " samtools sort -m3G -@3 - {bam} ").format(fa=fa, bam=prefix) \
+             if calmd \
+             else "samtools sort -m3G -@3 {bam}.fix.bam {bam} ".format(bam=prefix)
+
+    cmd = ("set -eo pipefail; samtools view -bS - "
            "| samtools sort -nm 3G -@3 - {bam} "
-           "&& samtools fixmate {bam}.bam {bam}.fix.bam "
-           "&& samtools sort -m3G -@3 {bam}.fix.bam {bam} "
+           "&& samtools fixmate {bam}.bam {bam}.fix.bam && "
+           "{calmd} "
            "&& samtools index {bam}.bam "
-           "&& rm -f {bam}.fix.bam").format(bam=prefix)
-    print >>sys.stderr, "writing to:", cmd
+           "&& rm -f {bam}.fix.bam").format(bam=prefix, calmd=calmd)
+    print >>sys.stderr, "writing to:\n", cmd.replace("&&", "\\\n\t&&")\
+                                            .replace("|", "\\\n\t|")
     out = nopen("|" + cmd, 'w').stdin
     PG = True
     lengths = {}
@@ -354,7 +362,9 @@ def call_single_pileup(chrom, pos1, ref, coverage, bases, quals):
     1/0
 
 
-
+# TODO: use samtools snp calling with strand-filter off. 
+# samtools mpileup -f /home/brentp/chr11.mm10.fa -d100000 -ugEIQ 20 -q 10
+# bwa-meth.bam | bcftools view -Acvgm 0.99 -p 0.8 - | vcfutils.pl  varFilter -1 0
 
 def tabulate_methylation(fpileup, reference):
 
@@ -411,6 +421,7 @@ def main(args):
     p.add_argument("--reference", help="reference fasta")
     p.add_argument("-t", "--threads", type=int, default=6)
     p.add_argument("-p", "--prefix", default="bwa-meth")
+    p.add_argument("--calmd", default=False, action="store_true")
     p.add_argument("--read-group", help="read-group to add to bam in same"
             " format as to bwa: '@RG\\tID:foo\\tSM:bar'")
     p.add_argument("fastqs", nargs="+", help="bs-seq fastqs to align")
@@ -422,7 +433,7 @@ def main(args):
 
     bwa_mem(args.reference, conv_fqs, "", prefix=args.prefix,
              threads=args.threads, rg=args.read_group or
-             rname(*args.fastqs))
+             rname(*args.fastqs), calmd=args.calmd)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
