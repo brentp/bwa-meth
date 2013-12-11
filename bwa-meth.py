@@ -199,7 +199,7 @@ def as_bam(pfile, fa, prefix, calmd=False):
     fa: the reference fasta
     prefix: the output prefix or directory
     """
-    calmd = (" samtools sort -m3G -@3 -o {bam}.fix.bam -"
+    calmd = (" samtools sort -m3G -@3 -o {bam}.fix.bam {bam}.tmp"
              " | samtools calmd -AbEr - {fa} > {bam}.bam "
              ).format(fa=fa, bam=prefix) \
              if calmd \
@@ -297,22 +297,6 @@ def faseq(fa, chrom, start, end, cache=[None]):
     chrom, seq = cache[0]
     return seq[start - 1: end]
 
-def get_context(seq5, forward):
-    """
-    >>> get_context('GACGG', True)
-    'CG+'                  
-    """
-    if forward:
-        assert seq5[2] == "C", seq5
-        if seq5[3] == "G": return "CG+"
-        if seq5[4] == "G": return "CHG+"
-        return "CHH+"
-    else: # reverse complement
-        assert seq5[2] == "G", seq5
-        if seq5[1] == "C": return "CG-"
-        if seq5[0] == "C": return "CHG-"
-        return "CHH-"
-
 def tabulate_main(args):
     __doc__ = """
     tabulate methylation from bwa-meth.py call
@@ -320,92 +304,43 @@ def tabulate_main(args):
     p = argparse.ArgumentParser(__doc__)
     p.add_argument("--reference", help="reference fasta")
     p.add_argument("-t", "--threads", type=int, default=6)
+    p.add_argument("--dbsnp", help="optional dbsnp for GATK calibration")
+    p.add_argument("--prefix", help="output prefix", default='bmeth-tab')
+    p.add_argument("--trim", help="left, right trim to avoid bias",
+                        default="2,2")
     p.add_argument("--map-q", type=int, default=10, help="only tabulate "
                    "methylation for reads with at least this mapping quality")
+    p.add_argument("--bissnp", help="path to bissnp jar")
     p.add_argument("bams", nargs="+")
 
     a = p.parse_args(args)
     assert os.path.exists(a.reference)
+    trim = map(int, a.trim.split(","))
 
-    cmd = "|samtools mpileup -f {reference} -d100000 -BIQ 20 -q {map_q} {bams}"
-    cmd = cmd.format(reference=a.reference, map_q=a.map_q, bams=" ".join(a.bams))
-    print >>sys.stderr, "generating pileup with command:", cmd
-    tabulate_methylation(cmd, a.reference)
-
-def call_single_pileup(chrom, pos1, ref, coverage, bases, quals):
-    """
-    With directional protocol, we know:
-        1. methylable site has 'G' on the opposite strand
-        2. methylated site has 'C' on the + strand
-        3. un-methylated site has 'T' on the + strand
-        4. SNP has base(minus) != complement(reference)
-
-    Return value is:
-        {'p_snp': 0.5,
-        'p_methylable': 0.5,
-        'p_methylated|methylable': 0.5,
-        'C': 20,
-        'T': 20}
-
-    p_methylable = n(G-) / n(total-)
-    p_methylated|methylable = n(C+) / n(C+ + T+)
-    p_snp = n(- != comp(ref)) / n(total -)
-
-    """
-    from collections import Counter
-    print bases
-
-    ref = ref.upper()
-    plus  = Counter(b for b in bases if b != "," and b == b.upper())
-    minus = Counter(b for b in bases if b != "." and b == b.lower())
-
-    print plus
-    print minus
-    1/0
+    cmd = """\
+    java -Xmx15g -jar {bissnp}
+        -R {reference}
+        -I {bams}
+        -T BisulfiteGenotyper
+         -stand_emit_conf 0
+        --trim_5_end_bp {trim5}
+        --trim_3_end_bp {trim3}
+        -vfn1 {prefix}.cpg.vcf -vfn2 {prefix}.snp.vcf
+        -stand_call_conf 10
+        -mmq {mapq} {dbsnp}
+        -nt {threads}""".format(
+            threads=a.threads,
+            dbsnp=("--dbsnp " + a.dbsnp) if a.dbsnp else "",
+            bissnp=a.bissnp,
+            trim5=trim[0],
+            trim3=trim[1],
+            prefix=a.prefix,
+            reference=a.reference,
+            mapq=a.map_q,
+            bams=" -I ".join(a.bams)).replace("\n", " \\\n")
 
 
-# TODO: use samtools snp calling with strand-filter off. 
-# samtools mpileup -f /home/brentp/chr11.mm10.fa -d100000 -ugEIQ 20 -q 10
-# bwa-meth.bam | bcftools view -Acvgm 0.99 -p 0.8 - | vcfutils.pl  varFilter -1 0
-
-def tabulate_methylation(fpileup, reference):
-
-    conversion = {"C": "T", "G": "A"}
-    print "#chrom\tpos1\tn_same\tn_converted\tcontext"
-
-    for toks in (l.rstrip("\r\n").split("\t") for l in nopen(fpileup)):
-        chrom, pos1, ref, coverage, bases, quals = toks
-        call_single_pileup(*toks)
-        #if int(coverage) < 4: continue
-        pos1 = int(pos1)
-        if coverage == '0': continue
-        ref = ref.upper()
-        converted = conversion.get(ref)
-        if converted is None:
-            continue
-
-        s = faseq(reference, chrom, pos1 - 2, pos1 + 2)
-        ctx = get_context(s, ref == "C")
-        if not ctx.startswith("CG"): continue
-
-        # . == same on + strand, , == same on - strand
-        n_same_plus = sum(1 for b in bases if b in ".")
-        n_same_minus = sum(1 for b in bases if b in ",")
-        n_same = n_same_plus + n_same_minus
-
-        n_converted_plus = sum(1 for b in bases if b == converted)
-        n_converted_minus = sum(1 for b in bases if b == converted.lower())
-        n_converted = n_converted_plus + n_converted_minus
-        #n_converted = sum(1 for b in bases if b == converted)
-        # SNP
-        n_other = sum(1 for b in bases.lower() if b in "actg" and b !=
-                converted.lower())
-
-        if n_same < 10 or n_converted < 10: continue
-        pct = n_same / float(n_same + n_converted)
-        print bases
-
-        print "{chrom}\t{pos1}\t{pct}\t{n_same_plus}\t{n_same_minus}\t{n_converted_plus}\t{n_converted_minus}\t{ctx}\t{s}\t{ref}".format(**locals())
+    print cmd
 
 
 def main(args):
