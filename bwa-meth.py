@@ -58,8 +58,10 @@ def convert_reads(fq1, fq2, out=sys.stdout):
             out.write("".join((name, seq.replace(char_a, char_b) , "\n+\n", qual)))
 
 
-def convert_fasta(ref_fasta):
+def convert_fasta(ref_fasta, just_name=False):
     out_fa = op.splitext(ref_fasta)[0] + ".c2t.fa"
+    if just_name:
+        return out_fa
     msg = "c2t in %s to %s" % (ref_fasta, out_fa)
     if is_newer_b(ref_fasta, out_fa):
         print >>sys.stderr, "already converted", msg
@@ -179,7 +181,7 @@ def rname(fq1, fq2):
 
 def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None,
             calmd=False):
-    conv_fa = convert_fasta(fa)
+    conv_fa = convert_fasta(fa, just_name=True)
     if not is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.sa')):
         raise BWAMethException("first run bwa-meth.py index %s" % fa)
 
