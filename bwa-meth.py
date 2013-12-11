@@ -57,7 +57,6 @@ def convert_reads(fq1, fq2, out=sys.stdout):
                             "\tYC:Z:" + char_a + char_b + '\n'))
             out.write("".join((name, seq.replace(char_a, char_b) , "\n+\n", qual)))
 
-
 def convert_fasta(ref_fasta, just_name=False):
     out_fa = op.splitext(ref_fasta)[0] + ".c2t.fa"
     if just_name:
@@ -200,14 +199,15 @@ def as_bam(pfile, fa, prefix, calmd=False):
     fa: the reference fasta
     prefix: the output prefix or directory
     """
-    calmd = ("samtools calmd -AbEr {bam}.fix.bam {fa} |"
-            " samtools sort -m3G -@3 - {bam} ").format(fa=fa, bam=prefix) \
+    calmd = (" samtools sort -m3G -@3 -o {bam}.fix.bam -"
+             " | samtools calmd -AbEr - {fa} > {bam}.bam "
+             ).format(fa=fa, bam=prefix) \
              if calmd \
              else "samtools sort -m3G -@3 {bam}.fix.bam {bam} ".format(bam=prefix)
 
     cmd = ("set -eo pipefail; samtools view -bS - "
            "| samtools sort -nm 3G -@3 - {bam} "
-           "&& samtools fixmate {bam}.bam {bam}.fix.bam && "
+           "; samtools fixmate {bam}.bam {bam}.fix.bam; "
            "{calmd} "
            "&& samtools index {bam}.bam "
            "&& rm -f {bam}.fix.bam").format(bam=prefix, calmd=calmd)
