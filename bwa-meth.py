@@ -18,6 +18,7 @@ import sys
 import os
 import os.path as op
 import argparse
+from subprocess import check_call
 
 from itertools import groupby, izip
 from toolshed import nopen, reader, is_newer_b
@@ -33,7 +34,7 @@ def wrap(text, width=100): # much faster than textwrap
         yield text[s:s+width]
 
 def run(cmd):
-    list(nopen("|%s" % cmd.rstrip("|")))
+    list(nopen("|%s" % cmd.lstrip("|")))
 
 def fasta_iter(fasta_name):
     fh = nopen(fasta_name)
@@ -205,15 +206,14 @@ def as_bam(pfile, fa, prefix, calmd=False):
              if calmd \
              else "samtools sort -m3G -@3 {bam}.fix.bam {bam} ".format(bam=prefix)
 
-    cmd1 = ("set -eo pipefail; samtools view -bS - "
+    cmd1 = ("samtools view -bS - "
            "| samtools sort -nm 3G -@3 - {bam} ").format(bam=prefix)
 
-    cmd2 = ("samtools fixmate {bam}.bam {bam}.fix.bam; "
+    cmds = ("samtools fixmate {bam}.bam {bam}.fix.bam; "
            "{calmd} "
-           "&& samtools index {bam}.bam "
-           "&& rm -f {bam}.fix.bam").format(bam=prefix, calmd=calmd)
-    print >>sys.stderr, "writing to:\n", cmd1.replace("&&", "\\\n\t&&")\
-                                            .replace("|", "\\\n\t|")
+           "; samtools index {bam}.bam "
+           "; rm -f {bam}.fix.bam").format(bam=prefix, calmd=calmd)
+    print >>sys.stderr, "writing to:\n", cmd1#.replace(";", "\\\n\t;").replace("|", "\\\n\t|")
     p = nopen("|" + cmd1, 'w')
     out = p.stdin
     PG = True
@@ -283,10 +283,14 @@ def as_bam(pfile, fa, prefix, calmd=False):
                 aln.pos_mate = str(lengths[aln.chrom] - aln.pos_mate + 2 - aln.cig_len())
 
         print >>out, str(aln)
+    p.stdin.flush()
+    p.stdout.flush()
+    p.communicate()
     out.close()
-    print >>sys.stderr, "running:\n", cmd2.replace("&&", "\\\n\t&&")\
-                                            .replace("|", "\\\n\t|")
-    run(cmd2)
+    for cmd2 in cmds.split(";"):
+        print >>sys.stderr, "running:\n", cmd2.strip()
+        print check_call(cmd2.strip(), shell=True, stderr=sys.stderr,
+                         stdout=sys.stdout)
 
 def faseq(fa, chrom, start, end, cache=[None]):
     """
@@ -327,11 +331,12 @@ def tabulate_main(args):
         -R {reference}
         -I {bams}
         -T BisulfiteGenotyper
-         -stand_emit_conf 0
         --trim_5_end_bp {trim5}
         --trim_3_end_bp {trim3}
         -vfn1 {prefix}.cpg.vcf -vfn2 {prefix}.snp.vcf
         -stand_call_conf 10
+        -stand_emit_conf 1
+        -mbq 20
         -mmq {mapq} {dbsnp}
         -nt {threads}""".format(
             threads=a.threads,
@@ -343,9 +348,35 @@ def tabulate_main(args):
             reference=a.reference,
             mapq=a.map_q,
             bams=" -I ".join(a.bams)).replace("\n", " \\\n")
+    print >>sys.stderr, cmd
+    run(cmd)
+    fmt = "{CHROM}\t{START}\t{POS}\t{PCT}\t{CS}\t{TS}\t{CTX}"
+    for i, d in enumerate(reader(a.prefix + ".cpg.vcf",
+                       skip_while=lambda toks: toks[0] != "#CHROM",
+                       header="ordered")):
+        if i == 0:
+            samples = d.keys()[9:]
+            fhs = {}
+            for sample in samples:
+                fhs[sample] = open("{prefix}{sample}.cpg.bed"\
+                        .format(prefix=a.prefix, sample=sample), "w")
 
-
-    print cmd
+                print >>fhs[sample], "#" + fmt.replace("}", "").replace("{", "")
+        if d['FILTER'] != "PASS": continue
+        d['START'] = str(int(d['POS']) - 1)
+        for sample in samples:
+            info = dict(zip(d['FORMAT'].split(":"), d[sample].split(":")))
+            try:
+                d['CS'] = int(info['CM'])  # (M)ethylated
+                d['TS'] = int(info['CU'])  # (U)n
+            except ValueError:
+                continue
+            d['CTX'] = info['CP']
+            if d['CS'] + d['TS'] == 0:
+                continue
+            else:
+                d['PCT'] = "%i" % (100 * d['CS'] / float(d['CS'] + d['TS']))
+            print >>fhs[sample], fmt.format(**d)
 
 
 def main(args):
