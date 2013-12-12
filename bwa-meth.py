@@ -205,15 +205,17 @@ def as_bam(pfile, fa, prefix, calmd=False):
              if calmd \
              else "samtools sort -m3G -@3 {bam}.fix.bam {bam} ".format(bam=prefix)
 
-    cmd = ("set -eo pipefail; samtools view -bS - "
-           "| samtools sort -nm 3G -@3 - {bam} "
-           "; samtools fixmate {bam}.bam {bam}.fix.bam; "
+    cmd1 = ("set -eo pipefail; samtools view -bS - "
+           "| samtools sort -nm 3G -@3 - {bam} ").format(bam=prefix)
+
+    cmd2 = ("samtools fixmate {bam}.bam {bam}.fix.bam; "
            "{calmd} "
            "&& samtools index {bam}.bam "
            "&& rm -f {bam}.fix.bam").format(bam=prefix, calmd=calmd)
-    print >>sys.stderr, "writing to:\n", cmd.replace("&&", "\\\n\t&&")\
+    print >>sys.stderr, "writing to:\n", cmd1.replace("&&", "\\\n\t&&")\
                                             .replace("|", "\\\n\t|")
-    out = nopen("|" + cmd, 'w').stdin
+    p = nopen("|" + cmd1, 'w')
+    out = p.stdin
     PG = True
     lengths = {}
     for toks in reader("%s" % (pfile, ), header=False):
@@ -282,6 +284,9 @@ def as_bam(pfile, fa, prefix, calmd=False):
 
         print >>out, str(aln)
     out.close()
+    print >>sys.stderr, "running:\n", cmd2.replace("&&", "\\\n\t&&")\
+                                            .replace("|", "\\\n\t|")
+    run(cmd2)
 
 def faseq(fa, chrom, start, end, cache=[None]):
     """
