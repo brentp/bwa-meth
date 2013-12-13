@@ -24,6 +24,8 @@ from itertools import groupby, izip
 from toolshed import nopen, reader, is_newer_b
 import string
 
+__version__ =  "0.04"
+
 class BWAMethException(Exception): pass
 
 def comp(s, _comp=string.maketrans('ATCG', 'TAGC')):
@@ -49,6 +51,7 @@ def convert_reads(fq1, fq2, out=sys.stdout):
     q1_iter = izip(*[fq1] * 4)
     q2_iter = izip(*[fq2] * 4)
 
+    jj = 0
     for pair in izip(q1_iter, q2_iter):
         for read_i, (name, seq, _, qual) in enumerate(pair):
             seq = seq.upper().rstrip('\n')
@@ -57,8 +60,10 @@ def convert_reads(fq1, fq2, out=sys.stdout):
             name = " ".join((name.split(" ")[0],
                             "YS:Z:" + seq +
                             "\tYC:Z:" + char_a + char_b + '\n'))
-            out.write("".join((name, seq.replace(char_a, char_b) , "\n+\n", qual)))
+            seq = seq.replace(char_a, char_b)
+            out.write("".join((name, seq, "\n+\n", qual)))
 
+        jj += 1
 
 def convert_fasta(ref_fasta, just_name=False):
     out_fa = op.splitext(ref_fasta)[0] + ".c2t.fa"
@@ -72,10 +77,19 @@ def convert_fasta(ref_fasta, just_name=False):
     try:
         fh = open(out_fa, "w")
         for header, seq in fasta_iter(ref_fasta):
+            ########### Reverse ######################
             print >>fh, ">r%s" % header
+
+            #if non_cpg_only:
+            #    for ctx in "TAG": # use "ATC" for fwd
+            #        seq = seq.replace('G' + ctx, "A" + ctx)
+            #    for line in wrap(seq):
+            #        print >>fh, line
+            #else:
             for line in wrap(seq.replace("G", "A")):
                 print >>fh, line
 
+            ########### Forward ######################
             print >>fh, ">f%s" % header
             for line in wrap(seq.replace("C", "T")):
                 print >>fh, line
@@ -172,6 +186,7 @@ class Bam(object):
     def ga_ct(self):
         return [x for x in self.other if x.startswith("YC:Z:")]
 
+
 def rname(fq1, fq2):
     def name(f):
         n = op.basename(op.splitext(f)[0])
@@ -190,7 +205,8 @@ def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None,
     if not rg is None and not rg.startswith('RG'):
         rg = '@RG\tID:{rg}\tSM:{rg}'.format(rg=rg)
 
-    cmd = ("|bwa mem -L 25 -pCMR '{rg}' -t {threads} {extra_args} "
+    # penalize gaps, clipping and unpaired. lower penalty on mismatches (-B)
+    cmd = ("|bwa mem -O 7 -B 3 -L 20 -U 90 -pCMR '{rg}' -t {threads} {extra_args} "
            "{conv_fa} {mfq}").format(**locals())
     print >>sys.stderr, "running: %s" % cmd.lstrip("|")
     as_bam(cmd, fa, prefix, calmd)
@@ -218,65 +234,15 @@ def as_bam(pfile, fa, prefix, calmd=False):
 
     p = nopen("|" + cmds[0], 'w')
     out = p.stdin
-    PG = True
-    lengths = {}
+
     for toks in reader("%s" % (pfile, ), header=False):
         if toks[0].startswith("@"):
-            if toks[0].startswith("@SQ"):
-                sq, sn, ln = toks  # @SQ    SN:fchr11    LN:122082543
-                # we have f and r, only print out f
-                chrom = sn.split(":")[1]
-                if chrom.startswith('r'): continue
-                chrom = chrom[1:]
-                lengths[chrom] = int(ln.split(":")[1])
-                toks = ["%s\tSN:%s\t%s" % (sq, chrom, ln)]
-            if toks[0].startswith("@PG"): continue
-            out.write("\t".join(toks) + "\n")
-            continue
-        if PG:
-            #print >>out, "@PG\tprog:bwa-meth.py"
-            PG = False
-
-        aln = Bam(toks)
-
-        orig_seq = aln.original_seq
-        # don't need this any more.
-        aln.other = [x for x in aln.other if not x.startswith('YS:Z')]
-        if aln.chrom == "*":  # chrom
-            print >>out, str(aln)
+            handle_header(toks, out)
             continue
 
-        # first letter of chrom is 'f' or 'r'
-        direction = aln.chrom[0]
-        aln.chrom = aln.chrom.lstrip('fr')
-
-        if not aln.is_mapped():
-            aln.seq = orig_seq
-            if direction == 'r':
-                aln.flag ^= 0x20
-            print >>out, str(aln)
-            continue
-        assert direction in 'fr', (direction, toks[2], aln)
-        aln.other.append('YD:Z:' + direction)
-
-        mate_direction = aln.chrom_mate[0]
-        if mate_direction not in "*=":
-            aln.chrom_mate = aln.chrom_mate[1:]
-        if mate_direction == 'r':
-            aln.flag ^= 0x20
-
-        # adjust the original seq to the cigar
-        l, r = aln.left_shift(), aln.right_shift()
-        if aln.is_plus_read():
-            aln.seq = orig_seq[l:r]
-        else:
-            aln.seq = comp(orig_seq[::-1][l:r])
-        if direction == 'r':
-            aln.flag ^= 0x10
-            if mate_direction == "=" and not aln.flag & 0x8:
-                aln.flag ^= 0x20
-
+        aln = handle_read(Bam(toks))
         print >>out, str(aln)
+
     p.stdin.flush()
     p.stdout.flush()
     p.communicate()
@@ -284,6 +250,62 @@ def as_bam(pfile, fa, prefix, calmd=False):
     for cmd in cmds[1:]:
         print >>sys.stderr, "running:", cmd.strip()
         assert check_call(cmd.strip(), shell=True) == 0
+
+def handle_header(toks, out):
+    if toks[0].startswith("@SQ"):
+        sq, sn, ln = toks  # @SQ    SN:fchr11    LN:122082543
+        # we have f and r, only print out f
+        chrom = sn.split(":")[1]
+        if chrom.startswith('r'): return
+        chrom = chrom[1:]
+        toks = ["%s\tSN:%s\t%s" % (sq, chrom, ln)]
+    if toks[0].startswith("@PG"):
+        toks = ["@PG\tID:bwa-meth.py\tPN:bwa-meth.py\tVN:%s\tCL:%s" % (
+                         __version__,
+                         " ".join(x.replace("\t", "\\t") for x in sys.argv))]
+    out.write("\t".join(toks) + "\n")
+
+
+def handle_read(aln):
+
+    orig_seq = aln.original_seq
+    # don't need this any more.
+    aln.other = [x for x in aln.other if not x.startswith('YS:Z')]
+    if aln.chrom == "*":  # chrom
+        return aln
+
+    # first letter of chrom is 'f' or 'r'
+    direction = aln.chrom[0]
+    aln.chrom = aln.chrom.lstrip('fr')
+
+    if not aln.is_mapped():
+        aln.seq = orig_seq
+        if direction == 'r':
+            aln.flag ^= 0x20
+        return aln
+
+    assert direction in 'fr', (direction, aln)
+    aln.other.append('YD:Z:' + direction)
+
+    mate_direction = aln.chrom_mate[0]
+    if mate_direction not in "*=":
+        aln.chrom_mate = aln.chrom_mate[1:]
+    if mate_direction == 'r':
+        aln.flag ^= 0x20
+
+    # adjust the original seq to the cigar
+    l, r = aln.left_shift(), aln.right_shift()
+    if aln.is_plus_read():
+        aln.seq = orig_seq[l:r]
+    else:
+        aln.seq = comp(orig_seq[::-1][l:r])
+    if direction == 'r':
+        aln.flag ^= 0x10
+        if mate_direction == "=" and not aln.flag & 0x8:
+            aln.flag ^= 0x20
+
+    return aln
+
 
 def faseq(fa, chrom, start, end, cache=[None]):
     """
