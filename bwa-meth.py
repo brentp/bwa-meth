@@ -64,7 +64,7 @@ def convert_reads(fq1, fq2, out=sys.stdout):
             out.write("".join((name, seq, "\n+\n", qual)))
 
         jj += 1
-        if jj > 190000: break
+        #if jj > 190000: break
 
 def convert_fasta(ref_fasta, just_name=False):
     out_fa = op.splitext(ref_fasta)[0] + ".c2t.fa"
