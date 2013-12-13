@@ -24,7 +24,7 @@ from itertools import groupby, izip
 from toolshed import nopen, reader, is_newer_b
 import string
 
-__version__ =  "0.04"
+__version__ =  "0.05"
 
 class BWAMethException(Exception): pass
 
@@ -174,10 +174,6 @@ class Bam(object):
             if cig == "H":
                 right += n
         return -right or None
-
-    @property
-    def start(self):
-        return self.pos
 
     @property
     def original_seq(self):
