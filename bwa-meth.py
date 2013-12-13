@@ -205,7 +205,7 @@ def as_bam(pfile, fa, prefix, calmd=False):
     view = "samtools view -bS - | samtools sort -m 3G - "
     if calmd:
         cmds = [
-            view + "{bam}.tmp.bam",
+            view + "{bam}.tmp",
             "samtools calmd -AbEr {bam}.tmp.bam {fa} > {bam}.bam 2>/dev/null",
             "rm {bam}.tmp.bam"]
     else:
