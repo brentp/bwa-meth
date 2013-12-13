@@ -64,6 +64,7 @@ def convert_reads(fq1, fq2, out=sys.stdout):
             out.write("".join((name, seq, "\n+\n", qual)))
 
         jj += 1
+        if jj > 190000: break
 
 def convert_fasta(ref_fasta, just_name=False):
     out_fa = op.splitext(ref_fasta)[0] + ".c2t.fa"
@@ -206,7 +207,7 @@ def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None,
         rg = '@RG\tID:{rg}\tSM:{rg}'.format(rg=rg)
 
     # penalize gaps, clipping and unpaired. lower penalty on mismatches (-B)
-    cmd = ("|bwa mem -O 7 -B 3 -L 20 -U 90 -pCMR '{rg}' -t {threads} {extra_args} "
+    cmd = ("|bwa mem -B 3 -L 25 -U 100 -pCMR '{rg}' -t {threads} {extra_args} "
            "{conv_fa} {mfq}").format(**locals())
     print >>sys.stderr, "running: %s" % cmd.lstrip("|")
     as_bam(cmd, fa, prefix, calmd)
