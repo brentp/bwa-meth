@@ -264,7 +264,6 @@ def as_bam(pfile, fa, prefix, calmd=False):
             aln.chrom_mate = aln.chrom_mate[1:]
         if mate_direction == 'r':
             aln.flag ^= 0x20
-            aln.other.append('MS:Z:MR')
 
         # adjust the original seq to the cigar
         l, r = aln.left_shift(), aln.right_shift()
@@ -273,7 +272,6 @@ def as_bam(pfile, fa, prefix, calmd=False):
         else:
             aln.seq = comp(orig_seq[::-1][l:r])
         if direction == 'r':
-            aln.other.append('YS:Z:RR')
             aln.flag ^= 0x10
             if mate_direction == "=" and not aln.flag & 0x8:
                 aln.flag ^= 0x20
