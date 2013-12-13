@@ -209,7 +209,8 @@ def as_bam(pfile, fa, prefix, calmd=False):
     cmd1 = ("samtools view -bS - "
            "| samtools sort -nm 3G -@3 - {bam} ").format(bam=prefix)
 
-    cmds = ("samtools fixmate {bam}.bam {bam}.fix.bam; "
+    #samtools fixmate {bam}.bam {bam}.fix.bam; "
+    cmds = ("mv {bam}.bam {bam}.fix.bam;"
            "{calmd} "
            "; samtools index {bam}.bam "
            "; rm -f {bam}.fix.bam").format(bam=prefix, calmd=calmd)
@@ -251,16 +252,19 @@ def as_bam(pfile, fa, prefix, calmd=False):
 
         if not aln.is_mapped():
             aln.seq = orig_seq
+            if direction == 'r':
+                aln.flag ^= 0x20
             print >>out, str(aln)
             continue
         assert direction in 'fr', (direction, toks[2], aln)
         aln.other.append('YD:Z:' + direction)
 
-        if aln.chrom_mate[0] not in "*=":
-            mate_direction = aln.chrom_mate[0]
+        mate_direction = aln.chrom_mate[0]
+        if mate_direction not in "*=":
             aln.chrom_mate = aln.chrom_mate[1:]
-            if mate_direction == 'r':
-                aln.flag ^= 0x20
+        if mate_direction == 'r':
+            aln.flag ^= 0x20
+            aln.other.append('MS:Z:MR')
 
         # adjust the original seq to the cigar
         l, r = aln.left_shift(), aln.right_shift()
@@ -269,8 +273,10 @@ def as_bam(pfile, fa, prefix, calmd=False):
         else:
             aln.seq = comp(orig_seq[::-1][l:r])
         if direction == 'r':
+            aln.other.append('YS:Z:RR')
             aln.flag ^= 0x10
-            aln.flag ^= 0x20
+            if mate_direction == "=" and not aln.flag & 0x8:
+                aln.flag ^= 0x20
 
         print >>out, str(aln)
     p.stdin.flush()
