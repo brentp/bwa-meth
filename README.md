@@ -32,7 +32,7 @@ Align
          $FQ1 $FQ2
          
 This will create $PREFIX.bam and $PREFIX.bam.bai. The output will pass
-Picard-tools ValidateSam (thanks to samtools fixmate) and will have the
+Picard-tools ValidateSam and will have the
 reads in the correct location (flipped from G => A reference).
 
 Handles clipped alignments and indels correctly. Fastqs can be gzipped
