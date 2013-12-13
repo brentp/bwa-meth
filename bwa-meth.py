@@ -48,6 +48,7 @@ def convert_reads(fq1, fq2, out=sys.stdout):
     fq1, fq2 = nopen(fq1), nopen(fq2)
     q1_iter = izip(*[fq1] * 4)
     q2_iter = izip(*[fq2] * 4)
+    jj = 0
     for pair in izip(q1_iter, q2_iter):
         for read_i, (name, seq, _, qual) in enumerate(pair):
             seq = seq.upper().rstrip('\n')
@@ -57,6 +58,7 @@ def convert_reads(fq1, fq2, out=sys.stdout):
                             "YS:Z:" + seq +
                             "\tYC:Z:" + char_a + char_b + '\n'))
             out.write("".join((name, seq.replace(char_a, char_b) , "\n+\n", qual)))
+        jj += 1
 
 def convert_fasta(ref_fasta, just_name=False):
     out_fa = op.splitext(ref_fasta)[0] + ".c2t.fa"
@@ -200,23 +202,21 @@ def as_bam(pfile, fa, prefix, calmd=False):
     fa: the reference fasta
     prefix: the output prefix or directory
     """
-    calmd = (" samtools sort -m3G -@3 -o {bam}.fix.bam {bam}.tmp"
-             " | samtools calmd -AbEr - {fa} > {bam}.bam "
-             ).format(fa=fa, bam=prefix) \
-             if calmd \
-             else "samtools sort -m3G -@3 {bam}.fix.bam {bam} ".format(bam=prefix)
+    view = "samtools view -bS - | samtools sort -m 3G - "
+    if calmd:
+        cmds = [
+            view + "{bam}.tmp.bam",
+            "samtools calmd -AbEr {bam}.tmp.bam {fa} > {bam}.bam 2>/dev/null",
+            "rm {bam}.tmp.bam"]
+    else:
+        cmds = [view + "{bam}"]
 
-    cmd1 = ("samtools view -bS - "
-           "| samtools sort -nm 3G -@3 - {bam} ").format(bam=prefix)
+    cmds.append("samtools index {bam}.bam")
+    cmds = [c.format(bam=prefix, fa=fa) for c in cmds]
 
-    #samtools fixmate {bam}.bam {bam}.fix.bam; "
-    cmds = ("mv {bam}.bam {bam}.fix.bam;"
-           "{calmd} "
-           "; samtools index {bam}.bam "
-           "; rm -f {bam}.fix.bam").format(bam=prefix, calmd=calmd)
-    print >>sys.stderr, "writing to:\n", cmd1
+    print >>sys.stderr, "writing to:\n", cmds[0]
 
-    p = nopen("|" + cmd1, 'w')
+    p = nopen("|" + cmds[0], 'w')
     out = p.stdin
     PG = True
     lengths = {}
@@ -283,10 +283,9 @@ def as_bam(pfile, fa, prefix, calmd=False):
     p.stdout.flush()
     p.communicate()
     out.close()
-    for cmd2 in cmds.split(";"):
-        print >>sys.stderr, "running:\n", cmd2.strip()
-        print check_call(cmd2.strip(), shell=True, stderr=sys.stderr,
-                         stdout=sys.stdout)
+    for cmd in cmds[1:]:
+        print >>sys.stderr, "running:", cmd.strip()
+        assert check_call(cmd.strip(), shell=True) == 0
 
 def faseq(fa, chrom, start, end, cache=[None]):
     """
