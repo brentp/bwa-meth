@@ -48,7 +48,7 @@ def convert_reads(fq1, fq2, out=sys.stdout):
     fq1, fq2 = nopen(fq1), nopen(fq2)
     q1_iter = izip(*[fq1] * 4)
     q2_iter = izip(*[fq2] * 4)
-    jj = 0
+
     for pair in izip(q1_iter, q2_iter):
         for read_i, (name, seq, _, qual) in enumerate(pair):
             seq = seq.upper().rstrip('\n')
@@ -58,7 +58,7 @@ def convert_reads(fq1, fq2, out=sys.stdout):
                             "YS:Z:" + seq +
                             "\tYC:Z:" + char_a + char_b + '\n'))
             out.write("".join((name, seq.replace(char_a, char_b) , "\n+\n", qual)))
-        jj += 1
+
 
 def convert_fasta(ref_fasta, just_name=False):
     out_fa = op.splitext(ref_fasta)[0] + ".c2t.fa"
