@@ -92,7 +92,7 @@ def bwa_index(fa):
         run("bwa index %s" % fa)
     except:
         if op.exists(fa + ".amb"):
-            os.unlink(fa + ".bam")
+            os.unlink(fa + ".amb")
         raise
 
 class Bam(object):
@@ -213,7 +213,8 @@ def as_bam(pfile, fa, prefix, calmd=False):
            "{calmd} "
            "; samtools index {bam}.bam "
            "; rm -f {bam}.fix.bam").format(bam=prefix, calmd=calmd)
-    print >>sys.stderr, "writing to:\n", cmd1#.replace(";", "\\\n\t;").replace("|", "\\\n\t|")
+    print >>sys.stderr, "writing to:\n", cmd1
+
     p = nopen("|" + cmd1, 'w')
     out = p.stdin
     PG = True
@@ -270,17 +271,6 @@ def as_bam(pfile, fa, prefix, calmd=False):
         if direction == 'r':
             aln.flag ^= 0x10
             aln.flag ^= 0x20
-
-            aln.seq = comp(aln.seq[::-1])
-            aln.qual = aln.qual[::-1]
-            aln.pos = lengths[aln.chrom] - aln.pos - aln.cig_len() + 2
-            aln.cigar = "".join(["%s%s" % c for c in aln.cigs()][::-1])
-
-            if aln.chrom_mate != "*":
-                aln.pos_mate = int(aln.pos_mate)
-                # this only works when the other read has same cigar as this one.
-                # so we just send to samtools fixmate.
-                aln.pos_mate = str(lengths[aln.chrom] - aln.pos_mate + 2 - aln.cig_len())
 
         print >>out, str(aln)
     p.stdin.flush()
