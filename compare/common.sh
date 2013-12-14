@@ -9,9 +9,9 @@ name=s38379
 TRIM_FQ1=/proj/Schwartz/brentp/2013/ken-rrbs/pilot/trimmed/38379_R1.fastq.gz
 TRIM_FQ2=${TRIM_FQ1/_R1/_R2}
 
-OUTDIR=results/
+OUT=results/
 
 TEMP=/scratch/brentp/
 
-mkdir -p $OUTDIR/trim/ logs/
+mkdir -p $OUT/trim/ logs/
 

@@ -1,8 +1,7 @@
-source ./common.sh
+. ./common.sh
 
-REF=/data/Schwartz/brentp/mm10/ # bowtie2
-REF=/data/Schwartz/brentp/mm10/ref/ # bowtie
-
+REF=/data/Schwartz/brentp/mm10/ # bowtie
+REF=/data/Schwartz/brentp/mm10/ref/ # bowtie2
 
 mkdir -p $OUT/bis1/trim/
 

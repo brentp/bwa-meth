@@ -1,7 +1,8 @@
 #lastdb -w 2 -u ~/src/last-hg/examples/bisulfite_f.seed $REF.last_f $REF 
 #lastdb -w 2 -u ~/src/last-hg/examples/bisulfite_r.seed $REF.last_r $REF
 
-source ./common.sh
+. ./common.sh
+OUTDIR=$OUT
 
 echo "
 ./src/last-bisulfite-paired.sh $REF.last_f $REF.last_r $FQ1 $FQ2 $name \
