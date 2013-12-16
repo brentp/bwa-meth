@@ -215,7 +215,7 @@ def as_bam(pfile, fa, prefix, calmd=False):
     fa: the reference fasta
     prefix: the output prefix or directory
     """
-    view = "samtools view -bS - | samtools sort -m 3G - "
+    view = "samtools view -bS - | samtools sort -@3 - "
     if calmd:
         cmds = [
             view + "{bam}.tmp",
