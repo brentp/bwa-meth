@@ -100,7 +100,6 @@ def run(args):
         threads = multiprocessing.cpu_count() # locals
     else:
         threads = args.threads
-    if not op.exists(args.prefix): os.makedirs(args.prefix)
     reference, kmer = op.abspath(args.reference), args.kmer
     reads = map(op.abspath, args.reads)
     rg = rname(reads[0], reads[1])
