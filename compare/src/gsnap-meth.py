@@ -91,7 +91,7 @@ def gsnap_meth(reference, reads, prefix, kmer=15, stranded=False,
     cmd_gsnap = cmd_gsnap.format(**locals())
     sh(cmd_gsnap)
 
-    cmd_index = "samtools index %(prefix).bam\n" % locals()
+    cmd_index = "samtools index {prefix}.bam".format(**locals())
     sh(cmd_index)
 
 def run(args):
