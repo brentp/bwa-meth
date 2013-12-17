@@ -318,6 +318,47 @@ def faseq(fa, chrom, start, end, cache=[None]):
     chrom, seq = cache[0]
     return seq[start - 1: end]
 
+def cnvs_main(args):
+    __doc__ = """
+    calculate CNVs from BS-Seq bams or vcfs
+    """
+    p = argparse.ArgumentParser(__doc__)
+    p.add_argument("--regions", help="optional target regions", default='NA')
+    p.add_argument("bams", nargs="+")
+
+    a = p.parse_args(args)
+    r_script = """
+options(stringsAsFactors=FALSE)
+suppressPackageStartupMessages(library(cn.mops))
+suppressPackageStartupMessages(library(snow))
+args = commandArgs(TRUE)
+regions = args[1]
+bams = args[2:length(args)]
+n = length(bams)
+if(is.na(regions)){
+    bam_counts = getReadCountsFromBAM(bams, parallel=min(n, 4), mode="paired")
+    res = cn.mops(bam_counts, parallel=min(n, 4), priorImpact=2)
+} else {
+    segments = read.delim(regions, header=FALSE)
+    gr = GRanges(segments[,1], IRanges(segments[,2], segments[,3]))
+    bam_counts = getSegmentReadCountsFromBAM(bams, GR=gr, mode="paired", parallel=min(n, 4))
+    res = exomecn.mops(bam_counts, parallel=min(n, 4), priorImpact=2)
+}
+res = calcIntegerCopyNumbers(res)
+
+df = as.data.frame(cnvs(res), stringsAsFactors=FALSE)
+write.table(df, row.names=FALSE, quote=FALSE, sep="\t")
+"""
+    import tempfile
+    with tempfile.NamedTemporaryFile(delete=True) as rfh:
+        print >>rfh, r_script
+        rfh.flush()
+        for d in reader('|Rscript {rs_name} {regions} {bams}'.format(
+            rs_name=rfh.name, regions=a.regions, bams=" ".join(a.bams)),
+            header=False):
+            print "\t".join(d)
+
+
 def tabulate_main(args):
     __doc__ = """
     tabulate methylation from bwa-meth.py call
@@ -401,6 +442,9 @@ def main(args):
 
     if len(args) > 0 and args[0] == "tabulate":
         sys.exit(tabulate_main(args[1:]))
+
+    if len(args) > 0 and args[0] == "cnvs":
+        sys.exit(cnvs_main(args[1:]))
 
     p = argparse.ArgumentParser(__doc__)
     p.add_argument("--reference", help="reference fasta")
