@@ -44,9 +44,9 @@ def main(regions, bams, reads=None, flags="-F4", pad=50):
     for bam in bams:
         off, on = OFF.format(**locals()), ON.format(**locals())
         counts[bam] = list(pmap(counter, [off, on]))
-        if not isinstance(reads, int):
+        if not isinstance(reads, float):
             # should divide by 4, but we also have pairs so...
-            reads = int(reads.next()) * 2
+            reads = float(reads.next()) * 2
 
 
         symbol = 'o' if len(set(counts[bam][0])) < 3 else '.'
@@ -68,9 +68,9 @@ def main(regions, bams, reads=None, flags="-F4", pad=50):
     for qual in range(0, 256):
         for b in bams:
             print >>out, "{qual}\t{bam}\t{off}\t{on}".format(
-            qual=qual, bam=name(bam),
-            off=counts[b][0][qual],
-            on=counts[b][1][qual])
+            qual=qual, bam=name(b),
+            off=counts[b][0][qual] / reads,
+            on=counts[b][1][qual] / reads)
     print >>sys.stderr, "wrote", out.name
 
 if __name__ == "__main__":

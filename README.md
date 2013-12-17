@@ -10,6 +10,18 @@ conversion of all C's to T's in both reference and reads.
 Recovers the original read (needed to tabulate methylation) by attaching it
 as a comment which bwa appends as a tag to the read.
 
+Performs better than existing aligners gauged by number of on and off-target reads for a capture method that targets CpG-rich region. Some off-target regions may be enriched, but all aligners are be subject to the same assumptions.
+Optimal alignment is the upper-left corner. Curves are drawn by varying the
+mapping quality cutoff for alingers that use it.
+
+![Aligner comparison](https://gist.github.com/brentp/bf7d3c3d3f23cc319ed8/raw/8d4930fd0938f868ff761995e45ababba4359c55/qual-plot.png)
+
+Vertical dotted line is mapping quality of 60 for bwa.
+
+Run.sh scripts for each method are here: https://github.com/brentp/bwa-meth/tree/master/compare
+I have done my best to have each method perform optimally, but no doubt there
+could be improvements.
+
 usage
 =====
 
