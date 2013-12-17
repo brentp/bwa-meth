@@ -7,11 +7,11 @@ OUTDIR=$OUT
 echo "
 ./src/last-bisulfite-paired.sh $REF.last_f $REF.last_r $FQ1 $FQ2 $name \
     | samtools view -bS - \
-    | samtools sort -n@3 - $OUTDIR/$name
-samtools fixmate $OUTDIR/$name.bam $OUTDIR/$name.fix.bam
-samtools sort -@3 $OUTDIR/$name.fix.bam $OUTDIR/$name
-rm $OUTDIR/$name.fix.bam
-samtools index $OUTDIR/$name.bam
+    | samtools sort - $OUTDIR/last-$name
+samtools fixmate $OUTDIR/last-$name.bam $OUTDIR/last-$name.fix.bam
+samtools sort $OUTDIR/last-$name.fix.bam $OUTDIR/last-$name
+rm $OUTDIR/last-$name.fix.bam
+samtools index $OUTDIR/last-$name.bam
 " | bsub -J last-$name \
          -e logs/last-$name.err \
          -o logs/last-$name.out -n 8
@@ -19,11 +19,11 @@ samtools index $OUTDIR/$name.bam
 echo "
 ./src/last-bisulfite-paired.sh $REF.last_f $REF.last_r $TRIM_FQ1 $TRIM_FQ2 $name \
     | samtools view -bS - \
-    | samtools sort -n@3 - $OUTDIR/trim/$name
-samtools fixmate $OUTDIR/trim/$name.bam $OUTDIR/trim/$name.fix.bam
-samtools sort -@3 $OUTDIR/trim/$name.fix.bam $OUTDIR/trim/$name
-rm $OUTDIR/trim/$name.fix.bam
-samtools index $OUTDIR/trim/$name.bam
+    | samtools sort - $OUTDIR/trim/last-$name
+samtools fixmate $OUTDIR/trim/last-$name.bam $OUTDIR/trim/last-$name.fix.bam
+samtools sort $OUTDIR/trim/last-$name.fix.bam $OUTDIR/trim/last-$name
+rm $OUTDIR/trim/last-$name.fix.bam
+samtools index $OUTDIR/trim/last-$name.bam
 " | bsub -J trim-last-$name \
          -e logs/trim-last-$name.err \
          -o logs/trim-last-$name.out -n 8
