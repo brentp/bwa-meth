@@ -8,6 +8,9 @@ import numpy as np
 from itertools import cycle
 import pylab as pl
 
+def name(bam):
+    return op.basename(bam).rsplit(".", 1)[0].split("-")[0]
+
 def counter(fname):
     fname = fname[0] if not isinstance(fname, basestring) else fname
     print >>sys.stderr, fname
@@ -48,7 +51,7 @@ def main(regions, bams, reads=None, flags="-F4", pad=50):
 
         symbol = 'o' if len(set(counts[bam][0])) < 3 else '.'
         pl.plot(counts[bam][0] / float(reads), counts[bam][1] / float(reads),
-                '%s%s' % (colors.next(), symbol), label=op.basename(bam))
+                '%s%s' % (colors.next(), symbol), label=name(bam))
 
     pl.xlabel('off target')
     pl.ylabel('on target')
@@ -58,6 +61,17 @@ def main(regions, bams, reads=None, flags="-F4", pad=50):
     print reads
     pl.show()
     os.unlink(r2.name)
+
+    out = open('qual-summary.txt', 'w')
+    print >>out, "qual\tmethod\toff\ton"
+
+    for qual in range(0, 256):
+        for b in bams:
+            print >>out, "{qual}\t{bam}\t{off}\t{on}".format(
+            qual=qual, bam=name(bam),
+            off=counts[b][0][qual],
+            on=counts[b][1][qual])
+    print >>sys.stderr, "wrote", out.name
 
 if __name__ == "__main__":
     import argparse
