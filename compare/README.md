@@ -56,6 +56,24 @@ use the run-{method} scripts to run each of the aligners.
 All of the run-{method} scripts source `common.sh` so make sure that has
 what you want.
 
+Assessment
+==========
+
+For simulated reads:
+
+    $ python src/sim-roc.py \
+        --reads data/sim_R1.fastq.gz \ # this is to get the number of input reads
+        results/*-sim.bam
+
+For real reads:
+
+    $ python src/target-roc.py \
+        --regions data/mm10.capture-regions.bed.gz \
+        --reads data/read_R1.fastq.gz \ # this is to get the number of input reads
+        results/*-real.bam
+
+Both real and simulated data can also be assesed after trimming.
+BAMs from trimmed input appear in results/trim/
 
 Note
 ====
