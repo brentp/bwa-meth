@@ -4,6 +4,9 @@
 . ./common.sh
 OUTDIR=$OUT
 
+
+rm -f logs/last-$name.err logs/last-$name.out logs/last-$name.err logs/last-$name.out
+
 echo "
 ./src/last-bisulfite-paired.sh $REF.last_f $REF.last_r $FQ1 $FQ2 $name \
     | samtools view -bS - \

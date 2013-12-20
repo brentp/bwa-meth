@@ -3,18 +3,24 @@
 REF=/data/Schwartz/brentp/mm10/ref/ # bowtie2
 REF=/data/Schwartz/brentp/mm10/ # bowtie
 
-mkdir -p $OUT/bis1/trim/
+method=bis1
 
-cmd="bismark --gzip --maxins 1000 -n 2 -l 24 --bam --temp_dir $TEMP --output_dir $OUT/bis1/ --prefix $name $REF -1 $FQ1 -2 $FQ2;
-samtools sort $OUT/bis1/*.bam $OUT/bis1-$name;
-samtools index $OUT/bis1-$name.bam"
+# modified bismark exectuable to include " --pairtries 1000"
+method=bis1-pair
+mkdir -p $OUT/$method/trim/
 
-echo $cmd  | bsub -J bis1-$name -e logs/bis1-$name.err -o logs/bis1-$name.out -n 2
+cmd="bismark --gzip --maxins 1000 -n 3 -l 20 --bam --temp_dir $TEMP --output_dir $OUT/$method/ --prefix $name $REF -1 $FQ1 -2 $FQ2;
+samtools sort $OUT/$method/*.bam $OUT/$method-$name;
+samtools index $OUT/$method-$name.bam"
+
+rm -f logs/$method-$name.err logs/$method-$name.out
+echo $cmd  | bsub -J $method-$name -e logs/$method-$name.err -o logs/$method-$name.out -n 2
 
 
 
-cmd="bismark --gzip -maxins 1000 -n 2 -l 24 --bam --temp_dir $TEMP --output_dir $OUT/bis1/trim/ --prefix $name $REF -1 $TRIM_FQ1 -2 $TRIM_FQ2;
-samtools sort $OUT/bis1/trim/*.bam $OUT/trim/bis1-$name;
-samtools index $OUT/trim/bis1-$name.bam"
+cmd="bismark --gzip -maxins 1000 -n 3 -l 20 --bam --temp_dir $TEMP --output_dir $OUT/$method/trim/ --prefix $name $REF -1 $TRIM_FQ1 -2 $TRIM_FQ2;
+samtools sort $OUT/$method/trim/*.bam $OUT/trim/$method-$name;
+samtools index $OUT/trim/$method-$name.bam"
 
-echo $cmd | bsub -J trim-bis1-$name -e logs/trim-bis1-$name.err -o logs/trim-bis1-$name.out -n 2
+rm -f logs/trim-$method-$name.err logs/trim-$method-$name.out
+echo $cmd | bsub -J trim-$method-$name -e logs/trim-$method-$name.err -o logs/trim-$method-$name.out -n 2
