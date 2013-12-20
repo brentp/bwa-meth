@@ -14,11 +14,12 @@ df$off = df$off * 100
 
 p = ggplot(df, aes(x=off, y=on, by=method)) +
          geom_point(aes(color=method)) +
-         geom_line(aes(color=method), linetype="longdash") +
-         geom_vline(xintercept=df[df$method == "bwa" & df$qual == 60, "off"], 
-                    linetype="dashed")
+         geom_line(aes(color=method), linetype="longdash") 
+        # geom_vline(xintercept=df[df$method == "bwa" & df$qual == 60, "off"], 
+        #           linetype="dashed")
 p = p + ylab("% Reads On Target")
 p = p + xlab("% Reads Off Target")
+p = p + theme(legend.position = c(0.8, 0.4))
 #print(p)
-ggsave('qual-plot.png')
+ggsave(file='qual-plot-real.eps', units="cm")
 
