@@ -57,7 +57,7 @@ def convert_reads(fq1, fq2, out=sys.stdout):
             seq = seq.upper().rstrip('\n')
             char_a, char_b = ['CT', 'GA'][read_i]
             # keep original sequence as name.
-            name = " ".join((name.split(" ")[0],
+            name = " ".join((name.split(" ")[0].rstrip("\r\n"),
                             "YS:Z:" + seq +
                             "\tYC:Z:" + char_a + char_b + '\n'))
             seq = seq.replace(char_a, char_b)
@@ -337,16 +337,16 @@ bams = args[2:length(args)]
 n = length(bams)
 if(is.na(regions)){
     bam_counts = getReadCountsFromBAM(bams, parallel=min(n, 4), mode="paired")
-    res = cn.mops(bam_counts, parallel=min(n, 4), priorImpact=2)
+    res = cn.mops(bam_counts, parallel=min(n, 4), priorImpact=20)
 } else {
     segments = read.delim(regions, header=FALSE)
     gr = GRanges(segments[,1], IRanges(segments[,2], segments[,3]))
     bam_counts = getSegmentReadCountsFromBAM(bams, GR=gr, mode="paired", parallel=min(n, 4))
-    res = exomecn.mops(bam_counts, parallel=min(n, 4), priorImpact=2)
+    res = exomecn.mops(bam_counts, parallel=min(n, 4), priorImpact=20)
 }
 res = calcIntegerCopyNumbers(res)
 
-df = as.data.frame(cnvs(res), stringsAsFactors=FALSE)
+df = as.data.frame(cnvs(res))
 write.table(df, row.names=FALSE, quote=FALSE, sep="\t")
 """
     import tempfile
@@ -387,8 +387,6 @@ def tabulate_main(args):
         --trim_5_end_bp {trim5}
         --trim_3_end_bp {trim3}
         -vfn1 {prefix}.cpg.vcf -vfn2 {prefix}.snp.vcf
-        -stand_call_conf 10
-        -stand_emit_conf 1
         -mbq 20
         -mmq {mapq} {dbsnp}
         -nt {threads}""".format(
@@ -447,7 +445,7 @@ def main(args):
         sys.exit(cnvs_main(args[1:]))
 
     p = argparse.ArgumentParser(__doc__)
-    p.add_argument("--reference", help="reference fasta")
+    p.add_argument("--reference", help="reference fasta", required=True)
     p.add_argument("-t", "--threads", type=int, default=6)
     p.add_argument("-p", "--prefix", default="bwa-meth")
     p.add_argument("--calmd", default=False, action="store_true")
