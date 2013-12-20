@@ -6,8 +6,9 @@ REF=/data/Schwartz/brentp/mm10/ # bowtie
 method=bis1
 
 # modified bismark exectuable to include " --pairtries 1000"
-method=bis1-pair
 mkdir -p $OUT/$method/trim/
+
+rm -f $OUT/$method/*.bam $OUT/trim/$method/*.bam
 
 cmd="bismark --gzip --maxins 1000 -n 3 -l 20 --bam --temp_dir $TEMP --output_dir $OUT/$method/ --prefix $name $REF -1 $FQ1 -2 $FQ2;
 samtools sort $OUT/$method/*.bam $OUT/$method-$name;
