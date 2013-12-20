@@ -1,6 +1,6 @@
 . ./common.sh
 
-rm logs/bwa-$name.err logs/bwa-$name.out
+rm -f logs/bwa-$name.err logs/bwa-$name.out
 echo "python ../bwa-meth.py --reference $REF \
         -t 22 -p results/bwa-$name $FQ1 $FQ2" \
         | bsub -J bwa-$name \
