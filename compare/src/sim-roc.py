@@ -16,6 +16,7 @@ def count_on_off(bam, flags, pad):
     off_count = [0] * 256
 
     # chr1b:3001315:+__chr1b:3001467:-        99      chr1    3001316 60 100M 
+    print bam
     for toks in reader("|samtools view {flags} {bam}".format(**locals()),
             header=False):
         if toks[0][0] == "@": continue
@@ -24,7 +25,7 @@ def count_on_off(bam, flags, pad):
         lname, rname = rname.split("__")
         name = lname if flag & 0x40 else rname if flag & 0x80 else None
         assert name is not None
-        chrom, pos, strand = name.split(":")
+        chrom, pos = name.split(":")[:2]
         chrom, pos = chrom[:-1], int(pos)
         on = chrom == toks[2] and abs(pos - int(toks[3])) <= pad
         qual = int(toks[4])
@@ -34,7 +35,6 @@ def count_on_off(bam, flags, pad):
             off_count[qual] += 1
 
     on_count = np.cumsum(on_count[::-1])[::-1]
-    print on_count
     off_count = np.cumsum(off_count[::-1])[::-1]
     return off_count, on_count
 
