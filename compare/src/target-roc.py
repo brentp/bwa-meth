@@ -29,7 +29,7 @@ OFF = "| bedtools intersect -ubam -abam {bam} \
             -b <(grep -v '@' {regions} | sort -k1,1 -k2,2n) -wa -v \
        | samtools view - {flags}"
 
-def main(regions, bams, reads=None, flags="-F4", pad=50):
+def main(regions, bams, reads=None, flags="-f2 -F0x100", pad=50):
     r2 = open(tempfile.mktemp(), 'w')
     for toks in reader(regions, header=False):
         if toks[0][0] == "@" or not (toks[1] + toks[2]).isdigit(): continue

@@ -2,6 +2,7 @@ import os
 import os.path as op
 import sys
 from toolshed import reader, nopen
+from collections import defaultdict
 
 import numpy as np
 from itertools import cycle
@@ -14,6 +15,7 @@ def count_on_off(bam, flags, pad):
 
     on_count = [0] * 256
     off_count = [0] * 256
+    rcounts = defaultdict(int)
 
     # chr1b:3001315:+__chr1b:3001467:-        99      chr1    3001316 60 100M 
     print bam
@@ -22,7 +24,15 @@ def count_on_off(bam, flags, pad):
         if toks[0][0] == "@": continue
         # chr1b:3001315:+__chr1b:3001467:-
         rname, flag = toks[0], int(toks[1])
-        lname, rname = rname.split("__")
+        rcounts[rname] += 1
+        if rcounts[rname] > 2:
+            raise Exception("%s:%s", (bam, rname))
+        try:
+            lname, rname = rname.split("__")
+        except:
+            print >>sys.stderr, toks
+            print >>sys.stderr, rname
+            raise
         name = lname if flag & 0x40 else rname if flag & 0x80 else None
         assert name is not None
         chrom, pos = name.split(":")[:2]
@@ -40,7 +50,7 @@ def count_on_off(bam, flags, pad):
 
 
 
-def main(bams, reads=None, flags="-F4", pad=101):
+def main(bams, reads=None, flags="-f2 -F0x100", pad=101):
     reads = 2 * float(nopen("|bioawk -c fastx 'END { print NR }' %s" % reads).next())
     counts = {}
     colors = cycle('rgbk')
