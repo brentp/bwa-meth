@@ -8,7 +8,7 @@ Uses the method employed by methylcoder and Bismark of using *in silico*
 conversion of all C's to T's in both reference and reads.
 
 Recovers the original read (needed to tabulate methylation) by attaching it
-as a comment which bwa appends as a tag to the read.
+as a comment which **bwa** appends as a tag to the read.
 
 Performs better than existing aligners gauged by number of on and off-target reads for a capture method that targets CpG-rich region. Some off-target regions may be enriched, but all aligners are be subject to the same assumptions.
 Optimal alignment is the upper-left corner. Curves are drawn by varying the
@@ -21,6 +21,17 @@ Vertical dotted line is mapping quality of 60 for bwa.
 Run.sh scripts for each method are here: https://github.com/brentp/bwa-meth/tree/master/compare
 I have done my best to have each method perform optimally, but no doubt there
 could be improvements.
+
+QuickStart
+==========
+
+The commands:
+
+    python bwa-meth.py index $REF
+    python bwa-meth.py --reference $REF some_R1.fastq.gz some_R2.fastq.gz --prefix some.output
+
+will create `some.output.bam` and `some.output.bam.bai`
+
 
 usage
 =====
@@ -82,8 +93,3 @@ That will give both CpG's and SNPs. BisSNP recommends performing
 the usual GATK preprocessing steps before this (BSQR, indel realignment).
 You can also align with `bwa-meth.py` with the `--calmd` flag to have samtools
 do it's BAQ.
-
-
-This software may use the samtools SNP calling pipeline at some point
-to do something similar to BisSNP.
-
