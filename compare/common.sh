@@ -7,7 +7,7 @@ name=real
 name=sim
 
 
-FQ1=data/${DATA}_R1.fastq.gz
+FQ1=data/${name}_R1.fastq.gz
 FQ2=${FQ1/_R1/_R2}
 
 
@@ -19,4 +19,6 @@ OUT=results/
 
 mkdir -p $OUT/trim/ logs/
 
-
+if [ ! -e $TRIM_FQ1 ]; then
+    exit 1
+fi
