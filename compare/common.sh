@@ -1,4 +1,5 @@
 REF=/data/Schwartz/brentp/mm10/ref/mm10.fa
+TEMP=/scratch/brentp/
 
 set -eo pipefail
 
@@ -13,10 +14,8 @@ FQ2=${FQ1/_R1/_R2}
 TRIM_FQ1=${FQ1/.fastq/.trim.fastq}
 TRIM_FQ2=${FQ2/.fastq/.trim.fastq}
 
-
 OUT=results/
 
-TEMP=/scratch/brentp/
 
 mkdir -p $OUT/trim/ logs/
 
