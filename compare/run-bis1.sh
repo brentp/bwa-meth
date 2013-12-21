@@ -8,10 +8,10 @@ method=bis1
 # modified bismark exectuable to include " --pairtries 1000"
 mkdir -p $OUT/$method/trim/
 
-rm -f $OUT/$method/*.bam $OUT/trim/$method/*.bam
+rm -f $OUT/$method/$name*.bam $OUT/trim/$method/$name*.bam
 
 cmd="bismark --gzip --maxins 1000 -n 3 -l 20 --bam --temp_dir $TEMP --output_dir $OUT/$method/ --prefix $name $REF -1 $FQ1 -2 $FQ2;
-samtools sort $OUT/$method/*.bam $OUT/$method-$name;
+samtools sort $OUT/$method/$name*.bam $OUT/$method-$name;
 samtools index $OUT/$method-$name.bam"
 
 rm -f logs/$method-$name.err logs/$method-$name.out
@@ -20,7 +20,7 @@ echo $cmd  | bsub -J $method-$name -e logs/$method-$name.err -o logs/$method-$na
 
 
 cmd="bismark --gzip -maxins 1000 -n 3 -l 20 --bam --temp_dir $TEMP --output_dir $OUT/$method/trim/ --prefix $name $REF -1 $TRIM_FQ1 -2 $TRIM_FQ2;
-samtools sort $OUT/$method/trim/*.bam $OUT/trim/$method-$name;
+samtools sort $OUT/$method/trim/$name*.bam $OUT/trim/$method-$name;
 samtools index $OUT/trim/$method-$name.bam"
 
 rm -f logs/trim-$method-$name.err logs/trim-$method-$name.out
