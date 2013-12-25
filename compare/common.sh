@@ -5,6 +5,7 @@ set -eo pipefail
 
 name=real
 name=sim
+name=dnemsim
 
 
 FQ1=data/${name}_R1.fastq.gz
@@ -19,6 +20,6 @@ OUT=results/
 
 mkdir -p $OUT/trim/ logs/
 
-if [ ! -e $TRIM_FQ1 ]; then
-    exit 1
-fi
+#if [ ! -e $TRIM_FQ1 ]; then
+#    exit 1
+#fi

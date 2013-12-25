@@ -46,13 +46,13 @@ EOF
 cat > $tmp.script << 'EOF'
 t=$1.$$
 
-lastal -p $1.fmat -s1 -Q1 -e120 -i1 "$2" "$4" > $t.t1f
-lastal -p $1.rmat -s0 -Q1 -e120 -i1 "$3" "$4" > $t.t1r
+lastal -m10 -p $1.fmat -s1 -Q1 -e120 -i1 "$2" "$4" > $t.t1f
+lastal -m10 -p $1.rmat -s0 -Q1 -e120 -i1 "$3" "$4" > $t.t1r
 last-merge-batches.py $t.t1f $t.t1r > $t.t1
 rm $t.t1f $t.t1r
 
-lastal -p $1.fmat -s0 -Q1 -e120 -i1 "$2" "$5" > $t.t2f
-lastal -p $1.rmat -s1 -Q1 -e120 -i1 "$3" "$5" > $t.t2r
+lastal -m10 -p $1.fmat -s0 -Q1 -e120 -i1 "$2" "$5" > $t.t2f
+lastal -m10 -p $1.rmat -s1 -Q1 -e120 -i1 "$3" "$5" > $t.t2r
 last-merge-batches.py $t.t2f $t.t2r > $t.t2
 rm $t.t2f $t.t2r
 
