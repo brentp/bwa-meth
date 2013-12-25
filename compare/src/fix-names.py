@@ -15,12 +15,14 @@ for r1, r2 in it.izip(it1, it2):
 
     rn1 = r1[0].split(":")
     rn2 = r2[0].split(":")
-    n = "@%s__%s" % (":".join(rn1[3:]).strip(), ":".join(rn2[3:]).strip())
+    n = "@%s__%s" % (":".join(rn1[3:-1]).strip(), ":".join(rn2[3:-1]).strip())
 
     r1, r2 = list(r1), list(r2)
     r1[0] = r2[0] = n
-    r1[0] += "/1\n"
-    r2[0] += "/2\n"
+    #r1[0] += "/1\n"
+    #r2[0] += "/2\n"
+    r1[0] += "_R1\n"
+    r2[0] += "_R2\n"
 
     out1.write("".join(r1))
     out2.write("".join(r2))
