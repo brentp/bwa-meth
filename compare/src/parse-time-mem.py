@@ -1,4 +1,4 @@
-
+import re
 def parse_time(log_file):
 
     for line in open(log_file):
@@ -7,6 +7,7 @@ def parse_time(log_file):
             time, unit = time.split()
             assert unit == "sec."
             return float(time)
+    raise Exception(log_file)
 
 def parse_mem(log_file):
 
@@ -16,6 +17,8 @@ def parse_mem(log_file):
             mem, unit = mem.split()
             assert unit == "MB"
             return float(mem)
+
+    raise Exception(log_file)
 
 def parse_prog(log_file):
     import os.path as op
@@ -35,14 +38,16 @@ def parse_trim(log_file):
     return ["no", "yes"][int("trim" in log_file)]
 
 
-fmt = "{trimmed}\t{program}\t{time}\t{mem}\t{dataset}"
+FMT = "{trimmed}\t{program}\t{time}(min)\t{mem}(GB)\t{dataset}"
 
 def main(logs):
+    fmt = FMT
     print fmt.replace("{", "").replace("}", "")
+    fmt = re.sub("\(.+?\)", "", fmt)
     for log in logs:
         trimmed = parse_trim(log)
-        mem = parse_mem(log)
-        time = parse_time(log)
+        mem = '%.2f' % (parse_mem(log) / 1000.)
+        time = '%.2f' % (parse_time(log) / 60.)
         program = parse_prog(log)
         dataset = parse_sim_real(log)
         print fmt.format(**locals())
