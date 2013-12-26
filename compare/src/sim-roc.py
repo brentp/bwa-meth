@@ -22,21 +22,30 @@ def count_on_off(bam, flags, pad):
     for toks in reader("|samtools view {flags} {bam}".format(**locals()),
             header=False):
         if toks[0][0] == "@": continue
+        if toks[0].endswith(("_R1", "_R2")):
+            toks[0] = toks[0][:-3]
+
         # chr1b:3001315:+__chr1b:3001467:-
+        if "random" in toks[0]: continue
+        if "chrUn" in toks[0]: continue
+
         rname, flag = toks[0], int(toks[1])
         rcounts[rname] += 1
         if rcounts[rname] > 2:
             raise Exception("%s:%s", (bam, rname))
-        try:
+        if "__" in rname:
             lname, rname = rname.split("__")
-        except:
-            print >>sys.stderr, toks
-            print >>sys.stderr, rname
-            raise
-        name = lname if flag & 0x40 else rname if flag & 0x80 else None
+            name = lname if flag & 0x40 else rname if flag & 0x80 else None
+        else:
+            name = rname.split("_", 1)[1]
+
         assert name is not None
         chrom, pos = name.split(":")[:2]
-        chrom, pos = chrom[:-1], int(pos)
+        chrom, pos = chrom.strip("_"), pos.strip("_")
+        if "-" in pos:
+            pos = int(pos.split("-")[0 if (flag & 0x40) else 1].split("_")[0])
+        else:
+            chrom, pos = chrom[:-1], int(pos)
         on = chrom == toks[2] and abs(pos - int(toks[3])) <= pad
         qual = int(toks[4])
         if on:
@@ -50,10 +59,12 @@ def count_on_off(bam, flags, pad):
 
 
 
-def main(bams, reads=None, flags="-f2 -F0x100", pad=101):
+FLAGS="-F0x100 -f2"
+FLAGS="-F%i" % (4 | 0x100)
+def main(bams, reads=None, flags=FLAGS, pad=1002):
     reads = 2 * float(nopen("|bioawk -c fastx 'END { print NR }' %s" % reads).next())
     counts = {}
-    colors = cycle('rgbk')
+    colors = cycle('rgbkmy')
     for bam in bams:
         counts[bam] = count_on_off(bam, flags, pad)
 
