@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 map bisulfite converted reads to an insilico converted genome using bwa mem.
 A command to this program like:
@@ -6,12 +7,11 @@ A command to this program like:
 
 Gets converted to:
 
-    bwa mem ref.c2t.fa '<python bwa-meth.py c2t A.fq' '<python bwa-meth.py g2a B.fq'
+    bwa mem -pCMR ref.c2t.fa '<python bwa-meth.py c2t A.fq B.fq'
 
-So that the reference with C converted to T is created and indexed
-automatically and no temporary files are written for the fastqs. The output is
-a corrected, indexed BAM, and a BED file similar to that output by Bismark with
-cs, ts, and percent methylation at each site.
+So that A.fq has C's converted to T's and B.fq has G's converted to A's
+and both are streamed directly to the aligner without a temporary file.
+The output is a corrected, sorted, indexed BAM.
 """
 
 import sys
@@ -53,11 +53,18 @@ def convert_reads(fq1, fq2, out=sys.stdout):
 
     jj = 0
     for pair in izip(q1_iter, q2_iter):
+
         for read_i, (name, seq, _, qual) in enumerate(pair):
+            name = name.rstrip("\r\n").split(" ")[0]
+            if name.endswith(("_R1", "_R2")):
+                name = name[:-3]
+            elif name.endswith(("/1", "/2")):
+                name = name[:-2]
+
             seq = seq.upper().rstrip('\n')
             char_a, char_b = ['CT', 'GA'][read_i]
             # keep original sequence as name.
-            name = " ".join((name.split(" ")[0].rstrip("\r\n"),
+            name = " ".join((name,
                             "YS:Z:" + seq +
                             "\tYC:Z:" + char_a + char_b + '\n'))
             seq = seq.replace(char_a, char_b)
