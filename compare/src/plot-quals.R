@@ -1,6 +1,6 @@
 library(ggplot2)
 
-df = read.delim('qual-summary.txt')
+df = read.delim('sim-qual-summary.txt')
 
 #df$method = rep(c("bismark", "bsmap", "bwa", "gsnap", "last"), 256)
 
@@ -10,6 +10,7 @@ df = df[(df$on + df$off) != 0,]
 df$on = df$on * 100
 df$off = df$off * 100
 
+require("grid")
 
 
 p = ggplot(df, aes(x=off, y=on, by=method)) +
@@ -19,7 +20,15 @@ p = ggplot(df, aes(x=off, y=on, by=method)) +
         #           linetype="dashed")
 p = p + ylab("% Reads On Target")
 p = p + xlab("% Reads Off Target")
-p = p + theme(legend.position = c(0.8, 0.4))
+p = p + theme(legend.position = c(0.8, 0.4),
+              legend.text=element_text(size=5, lineheight=5),
+              axis.text=element_text(size=5),
+              axis.title=element_text(size=8),
+              legend.key.size=unit(6, "mm")
+
+#              legend.key.height=5
+              )
 #print(p)
-ggsave(file='qual-plot-real.eps', units="cm")
+ggsave(file='qual-plot-real.eps', units="cm", width=8.6, height=6.3,
+    dpi=600)
 
