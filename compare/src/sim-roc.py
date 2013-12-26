@@ -33,8 +33,8 @@ def count_on_off(bam, flags, pad):
         rcounts[rname] += 1
         if rcounts[rname] > 2:
             raise Exception("%s:%s", (bam, rname))
-        if "__" in rname:
-            lname, rname = rname.split("__")
+        if "-PAIR-" in rname:
+            lname, rname = rname.split("-PAIR-")
             name = lname if flag & 0x40 else rname if flag & 0x80 else None
         else:
             name = rname.split("_", 1)[1]
@@ -45,6 +45,7 @@ def count_on_off(bam, flags, pad):
         if "-" in pos:
             pos = int(pos.split("-")[0 if (flag & 0x40) else 1].split("_")[0])
         else:
+            assert chrom[-1] in "ab", chrom
             chrom, pos = chrom[:-1], int(pos)
         on = chrom == toks[2] and abs(pos - int(toks[3])) <= pad
         qual = int(toks[4])
@@ -61,7 +62,7 @@ def count_on_off(bam, flags, pad):
 
 FLAGS="-F0x100 -f2"
 FLAGS="-F%i" % (4 | 0x100)
-def main(bams, reads=None, flags=FLAGS, pad=1002):
+def main(bams, reads=None, flags=FLAGS, pad=2002):
     reads = 2 * float(nopen("|bioawk -c fastx 'END { print NR }' %s" % reads).next())
     counts = {}
     colors = cycle('rgbkmy')
@@ -69,7 +70,7 @@ def main(bams, reads=None, flags=FLAGS, pad=1002):
         counts[bam] = count_on_off(bam, flags, pad)
 
         symbol = 'o' if len(set(counts[bam][0])) < 3 else '.'
-        pl.plot(counts[bam][0] / float(reads), counts[bam][1] / float(reads),
+        pl.plot(counts[bam][0][1:] / float(reads), counts[bam][1][1:] / float(reads),
                 '%s%s' % (colors.next(), symbol), label=name(bam))
 
     pl.xlabel('off target')
