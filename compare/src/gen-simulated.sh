@@ -12,6 +12,7 @@ mkdir -p data/simmed/
 cd data/simmed
 
 <<DONE
+rm -f ./*
 fasta-methyl-sim $REF > mm10.meth.fa
 fasta-polymorph $DNM/snp137Common.txt.gz mm10.meth.fa mm10.meth.fa > mm10.poly.fa
 
