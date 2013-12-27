@@ -44,7 +44,7 @@ def main(regions, bams, reads=None, flags="-F%i" % (0x100 | 0x4), pad=50):
     reads = int(nopen("|bioawk -c fastx 'END { print NR }' %s" % reads).next()) * 2.0
 
     counts = {}
-    colors = cycle('rgbk')
+    colors = cycle('rgbkmy')
     
     counts = dict(pmap(count_both, ((bam, regions, flags)
                             for bam in bams)))
