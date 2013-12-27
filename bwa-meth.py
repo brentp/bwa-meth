@@ -209,8 +209,8 @@ def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None,
     if not rg is None and not rg.startswith('RG'):
         rg = '@RG\tID:{rg}\tSM:{rg}'.format(rg=rg)
 
-    # penalize gaps, clipping and unpaired. lower penalty on mismatches (-B)
-    cmd = ("|bwa mem -B 3 -L 25 -U 100 -pCMR '{rg}' -t {threads} {extra_args} "
+    # penalize clipping and unpaired. lower penalty on mismatches (-B)
+    cmd = ("|bwa mem -T 40 -B 3 -L 25 -U 100 -pCMR '{rg}' -t {threads} {extra_args} "
            "{conv_fa} {mfq}").format(**locals())
     print >>sys.stderr, "running: %s" % cmd.lstrip("|")
     as_bam(cmd, fa, prefix, calmd)
@@ -284,8 +284,6 @@ def handle_read(aln):
 
     if not aln.is_mapped():
         aln.seq = orig_seq
-        if direction == 'r':
-            aln.flag ^= 0x20
         return aln
 
     assert direction in 'fr', (direction, aln)
@@ -294,8 +292,6 @@ def handle_read(aln):
     mate_direction = aln.chrom_mate[0]
     if mate_direction not in "*=":
         aln.chrom_mate = aln.chrom_mate[1:]
-    if mate_direction == 'r':
-        aln.flag ^= 0x20
 
     # adjust the original seq to the cigar
     l, r = aln.left_shift(), aln.right_shift()
@@ -303,10 +299,6 @@ def handle_read(aln):
         aln.seq = orig_seq[l:r]
     else:
         aln.seq = comp(orig_seq[::-1][l:r])
-    if direction == 'r':
-        aln.flag ^= 0x10
-        if mate_direction == "=" and not aln.flag & 0x8:
-            aln.flag ^= 0x20
 
     return aln
 
