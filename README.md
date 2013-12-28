@@ -26,12 +26,12 @@ QuickStart
 ==========
 
 Without installation, you can use as `python bwameth.py` with install, the
-command is `bwa-meth`.
+command is `bwameth.py`.
 
 The commands:
 
-    bwa-meth index $REF
-    bwa-meth --reference $REF some_R1.fastq.gz some_R2.fastq.gz --prefix some.output
+    bwameth.py index $REF
+    bwameth.py --reference $REF some_R1.fastq.gz some_R2.fastq.gz --prefix some.output
 
 will create `some.output.bam` and `some.output.bam.bai`
 
@@ -51,7 +51,7 @@ Installation
 
  + samtools command on the `$PATH` (https://github.com/samtools/samtools)
 
-
+ + bwa mem from: https://github.com/lh3/bwa
 
 
 usage
@@ -62,7 +62,7 @@ Index
 
 One time only, you need to index a reference sequence.
 
-    bwa-meth index $REFERENCE
+    bwameth.py index $REFERENCE
 
 If your reference is `some.fasta`, this will create `some.c2t.fasta`
 and all of the bwa indexes associated with it.
@@ -70,7 +70,7 @@ and all of the bwa indexes associated with it.
 Align
 -----
 
-    bwa-meth --threads 16 \
+    bwameth.py --threads 16 \
          --prefix $PREFIX \
          --reference $REFERENCE \
          $FQ1 $FQ2
@@ -85,7 +85,7 @@ or not.
 The command above will be sent to BWA to do the work as something like:
 
     bwa mem -L 25 -pCM -t 15  $REFERENCE.c2t.fa \
-            '<python bwa-meth c2t $FQ1 $FQ2'
+            '<python bwameth.py c2t $FQ1 $FQ2'
 
 So the converted reads are streamed directly to bwa and **never written
 to disk**. The output from that is modified by `bwa-meth` and streamed
@@ -99,7 +99,7 @@ for SNPs.
 
 E.g.:
 
-    bwa-meth tabulate \
+    bwameth.py tabulate \
                 --trim 3,3 \
                 --map-q 60 \
                 --bissnp BisSNP-0.82.2.jar \
