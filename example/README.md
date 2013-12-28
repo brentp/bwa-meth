@@ -5,8 +5,9 @@ These commands can be run from this directory once `bwa-meth` is installed
 
 ```Shell
 
-bwa-meth index ref.fa
-bwa-meth --reference ref.fa t_R1.fastq.gz t_R2.fastq.gz -t 12
+# rm ref.c2t* ref.dict ref.fa.fai
+bwameth.py index ref.fa
+bwameth.py --reference ref.fa t_R1.fastq.gz t_R2.fastq.gz -t 12
 
 ```
 
@@ -32,7 +33,7 @@ samtools flagstat bwa-meth.bam
 Then tabulate the methylation assuming you have the BisSNP.jar file at $BISSNP
 
 ```Shell
-    bwa-meth tabulate \
+    bwameth.py tabulate \
              --trim 3,3 \
              --map-q 60 --bissnp $BISSNP \
              --prefix ex \
@@ -47,14 +48,13 @@ This will create `ex`.cpg.vcf and `ex`.snp.vcf along with a .BED file for each b
 $ head ext_R.cpg.bed 
 ```
 
-    #CHROM  START   POS PCT CS  TS  CTX
-    chrREF  101929  101930  0   0   1   CG
-    chrREF  101987  101988  100 1   0   CG
-    chrREF  111053  111054  100 1   0   CG
-    chrREF  119654  119655  0   0   2   CG
-    chrREF  119666  119667  0   0   2   CG
-    chrREF  119707  119708  0   0   2   CG
-    chrREF  119716  119717  0   0   1   CG
-    chrREF  119735  119736  0   0   2   CG
-    chrREF  119770  119771  0   0   1   CG
-
+    #CHROM	START	POS	PCT	CS	TS	CTX
+    chrREF	507	508	100	1	0	CG
+    chrREF	524	525	0	0	1	C
+    chrREF	566	567	0	0	1	C
+    chrREF	582	583	0	0	1	CG
+    chrREF	623	624	0	0	1	CG
+    chrREF	1782	1783	100	1	0	CG
+    chrREF	1791	1792	0	0	1	CG
+    chrREF	1798	1799	0	0	1	C
+    chrREF	1808	1809	100	1	0	CG
