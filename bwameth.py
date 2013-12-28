@@ -72,6 +72,8 @@ def convert_reads(fq1, fq2, out=sys.stdout):
 
         jj += 1
         #if jj > 190000: break
+    out.flush()
+    out.close()
 
 def convert_fasta(ref_fasta, just_name=False):
     out_fa = op.splitext(ref_fasta)[0] + ".c2t.fa"
@@ -204,7 +206,7 @@ def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None,
             calmd=False):
     conv_fa = convert_fasta(fa, just_name=True)
     if not is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.sa')):
-        raise BWAMethException("first run bwa-meth.py index %s" % fa)
+        raise BWAMethException("first run bwa-meth index %s" % fa)
 
     if not rg is None and not rg.startswith('RG'):
         rg = '@RG\tID:{rg}\tSM:{rg}'.format(rg=rg)
@@ -264,7 +266,7 @@ def handle_header(toks, out):
         chrom = chrom[1:]
         toks = ["%s\tSN:%s\t%s" % (sq, chrom, ln)]
     if toks[0].startswith("@PG"):
-        toks = ["@PG\tID:bwa-meth.py\tPN:bwa-meth.py\tVN:%s\tCL:%s" % (
+        toks = ["@PG\tID:bwa-meth\tPN:bwa-meth\tVN:%s\tCL:%s" % (
                          __version__,
                          " ".join(x.replace("\t", "\\t") for x in sys.argv))]
     out.write("\t".join(toks) + "\n")
@@ -376,6 +378,8 @@ def tabulate_main(args):
 
     a = p.parse_args(args)
     assert os.path.exists(a.reference)
+    assert os.path.exists(a.reference + ".fai"), ("run samtools faidx %s" \
+                                                  % a.reference)
     trim = map(int, a.trim.split(","))
 
     cmd = """\
@@ -401,6 +405,7 @@ def tabulate_main(args):
     print >>sys.stderr, cmd
     run(cmd)
     fmt = "{CHROM}\t{START}\t{POS}\t{PCT}\t{CS}\t{TS}\t{CTX}"
+    print >>sys.stderr, a.prefix + ".cpg.vcf"
     for i, d in enumerate(reader(a.prefix + ".cpg.vcf",
                        skip_while=lambda toks: toks[0] != "#CHROM",
                        header="ordered")):
@@ -412,7 +417,7 @@ def tabulate_main(args):
                         .format(prefix=a.prefix, sample=sample), "w")
 
                 print >>fhs[sample], "#" + fmt.replace("}", "").replace("{", "")
-        if d['FILTER'] != "PASS": continue
+        if not d['FILTER'] in (".", "PASS"): continue
         d['START'] = str(int(d['POS']) - 1)
         for sample in samples:
             info = dict(zip(d['FORMAT'].split(":"), d[sample].split(":")))
@@ -454,7 +459,8 @@ def main(args=sys.argv[1:]):
 
     args = p.parse_args(args)
     # for the 2nd file. use G => A and bwa's support for streaming.
-    conv_fqs = "'<python %s c2t %s %s'" % (__file__, args.fastqs[0],
+    script = __file__
+    conv_fqs = "'<python %s c2t %s %s'" % (script, args.fastqs[0],
                                                       args.fastqs[1])
 
     bwa_mem(args.reference, conv_fqs, "", prefix=args.prefix,
