@@ -35,6 +35,8 @@ The commands:
 
 will create `some.output.bam` and `some.output.bam.bai`
 
+See the full example at: https://github.com/brentp/bwa-meth/tree/master/example/
+
 Installation
 ============
 
