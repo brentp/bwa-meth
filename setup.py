@@ -7,7 +7,7 @@ import bwameth
 setup(name='bwameth',
       version=bwameth.__version__,
       description="align BS-Seq reads with bwa mem",
-      packages=['.'],
+      packages=[''],
       author="Brent Pedersen",
       author_email="bpederse@gmail.com",
       license="MIT",

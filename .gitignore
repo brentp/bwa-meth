@@ -1,5 +1,12 @@
 *.py[cod]
 
+# bio stuff
+*.c2t.*
+*.fai
+example/*.vcf
+*.bai
+*.dict
+
 # C extensions
 *.so
 
