@@ -429,7 +429,7 @@ def tabulate_main(args):
             print >>fhs[sample], fmt.format(**d)
 
 
-def main(args):
+def main(args=sys.argv[1:]):
 
     if len(args) > 0 and args[0] == "index":
         sys.exit(bwa_index(convert_fasta(args[1])))
