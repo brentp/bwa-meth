@@ -14,5 +14,5 @@ setup(name='bwameth',
       install_requires=["toolshed"],
       long_description=open('README.md').read(),
       classifiers=["Topic :: Scientific/Engineering :: Bio-Informatics"],
-      entry_points="[console_scripts]\nbwa-meth = bwameth:main",
+      scripts=['bwameth.py']
   )
