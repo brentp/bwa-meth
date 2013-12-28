@@ -24,7 +24,7 @@ from itertools import groupby, izip
 from toolshed import nopen, reader, is_newer_b
 import string
 
-__version__ =  "0.05"
+__version__ =  "0.06"
 
 class BWAMethException(Exception): pass
 
