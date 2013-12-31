@@ -1,10 +1,7 @@
-# make supplemental figures for paper
 options(stringsAsFactors=FALSE)
 library(ggplot2)
 
-args = commandArgs(TRUE)
-
-df = read.delim(args[1])
+df = read.delim('qual-summary.txt')
 
 df[df$method == "bis1", "method"] = "bismark"
 df$method = factor(df$method, levels=c("last", "bsmap", "gsnap", "bwa", "bismark"))
