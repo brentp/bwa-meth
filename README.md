@@ -2,7 +2,8 @@ bwa-meth
 ========
 
 align BS-Seq reads and tabulate methylation without intermediate temp files.
-This only works for reads from the directional protocol (most common).
+This only works for **paired-end reads from the directional protocol** 
+(most common).
 
 Uses the method employed by methylcoder and Bismark of using *in silico*
 conversion of all C's to T's in both reference and reads.
