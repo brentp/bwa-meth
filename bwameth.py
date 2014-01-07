@@ -305,20 +305,6 @@ def handle_read(aln):
     return aln
 
 
-def faseq(fa, chrom, start, end, cache=[None]):
-    """
-    this is called by pileup which is ordered by chrom
-    so we can speed things up by reading in a chrom at
-    a time into memory
-    """
-    if cache[0] is None or cache[0][0] != chrom:
-        seq = "".join(x.strip() for i, x in
-            enumerate(nopen("|samtools faidx %s %s" % (fa, chrom))) if i >
-            0).upper()
-        cache[0] = (chrom, seq)
-    chrom, seq = cache[0]
-    return seq[start - 1: end]
-
 def cnvs_main(args):
     __doc__ = """
     calculate CNVs from BS-Seq bams or vcfs
@@ -461,7 +447,7 @@ def main(args=sys.argv[1:]):
     # for the 2nd file. use G => A and bwa's support for streaming.
     script = __file__
     conv_fqs = "'<python %s c2t %s %s'" % (script, args.fastqs[0],
-                                                      args.fastqs[1])
+                                                   args.fastqs[1])
 
     bwa_mem(args.reference, conv_fqs, "", prefix=args.prefix,
              threads=args.threads, rg=args.read_group or
