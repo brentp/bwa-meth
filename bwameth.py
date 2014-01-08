@@ -3,11 +3,11 @@
 map bisulfite converted reads to an insilico converted genome using bwa mem.
 A command to this program like:
 
-    python bwa-meth.py --reference ref.fa A.fq B.fq
+    python bwameth.py --reference ref.fa A.fq B.fq
 
 Gets converted to:
 
-    bwa mem -pCMR ref.c2t.fa '<python bwa-meth.py c2t A.fq B.fq'
+    bwa mem -pCMR ref.c2t.fa '<python bwameth.py c2t A.fq B.fq'
 
 So that A.fq has C's converted to T's and B.fq has G's converted to A's
 and both are streamed directly to the aligner without a temporary file.
@@ -206,7 +206,7 @@ def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None,
             calmd=False):
     conv_fa = convert_fasta(fa, just_name=True)
     if not is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.sa')):
-        raise BWAMethException("first run bwa-meth index %s" % fa)
+        raise BWAMethException("first run bwameth.py index %s" % fa)
 
     if not rg is None and not rg.startswith('RG'):
         rg = '@RG\tID:{rg}\tSM:{rg}'.format(rg=rg)
@@ -348,7 +348,7 @@ write.table(df, row.names=FALSE, quote=FALSE, sep="\t")
 
 def tabulate_main(args):
     __doc__ = """
-    tabulate methylation from bwa-meth.py call
+    tabulate methylation from bwameth.py call
     """
     p = argparse.ArgumentParser(__doc__)
     p.add_argument("--reference", help="reference fasta")
