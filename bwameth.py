@@ -26,6 +26,16 @@ import string
 
 __version__ =  "0.06"
 
+def checkX(cmd):
+    for p in os.environ['PATH'].split(":"):
+        if os.access(os.path.join(p, cmd), os.X_OK):
+            break
+    else:
+        raise Exception("executable for '%s' not found" % cmd)
+
+checkX('samtools')
+checkX('bwa')
+
 class BWAMethException(Exception): pass
 
 def comp(s, _comp=string.maketrans('ATCG', 'TAGC')):
@@ -423,6 +433,7 @@ def tabulate_main(args):
 def main(args=sys.argv[1:]):
 
     if len(args) > 0 and args[0] == "index":
+        assert len(args) == 2, ("must specify fasta as 2nd argument")
         sys.exit(bwa_index(convert_fasta(args[1])))
 
     if len(args) > 0 and args[0] == "c2t":
