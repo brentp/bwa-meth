@@ -20,7 +20,10 @@ import os.path as op
 import argparse
 from subprocess import check_call
 
-from itertools import groupby, izip
+try:
+    from itertools import groupby, izip
+except ImportError: # python3
+    izip = zip
 from toolshed import nopen, reader, is_newer_b
 import string
 
@@ -56,7 +59,7 @@ def fasta_iter(fasta_name):
         yield header, "".join(s.strip() for s in faiter.next()).upper()
 
 def convert_reads(fq1, fq2, out=sys.stdout):
-    print >>sys.stderr, "converting reads in %s,%s" % (fq1, fq2)
+    sys.stderr.write("converting reads in %s,%s\n" % (fq1, fq2))
     fq1, fq2 = nopen(fq1), nopen(fq2)
     q1_iter = izip(*[fq1] * 4)
     q2_iter = izip(*[fq2] * 4)
@@ -91,14 +94,14 @@ def convert_fasta(ref_fasta, just_name=False):
         return out_fa
     msg = "c2t in %s to %s" % (ref_fasta, out_fa)
     if is_newer_b(ref_fasta, out_fa):
-        print >>sys.stderr, "already converted", msg
+        sys.stderr.write("already converted: %s\n" % msg)
         return out_fa
-    print >>sys.stderr, "converting", msg
+    sys.stderr.write("converting %s\n" % msg)
     try:
         fh = open(out_fa, "w")
         for header, seq in fasta_iter(ref_fasta):
             ########### Reverse ######################
-            print >>fh, ">r%s" % header
+            fh.write(">r%s\n" % header)
 
             #if non_cpg_only:
             #    for ctx in "TAG": # use "ATC" for fwd
@@ -107,12 +110,12 @@ def convert_fasta(ref_fasta, just_name=False):
             #        print >>fh, line
             #else:
             for line in wrap(seq.replace("G", "A")):
-                print >>fh, line
+                fh.write(line + '\n')
 
             ########### Forward ######################
-            print >>fh, ">f%s" % header
+            fh.write(">f%s\n" % header)
             for line in wrap(seq.replace("C", "T")):
-                print >>fh, line
+                fh.write(line + '\n')
         fh.close()
     except:
         fh.close(); os.unlink(out_fa)
@@ -123,7 +126,7 @@ def convert_fasta(ref_fasta, just_name=False):
 def bwa_index(fa):
     if is_newer_b(fa, (fa + '.amb', fa + '.sa')):
         return
-    print >>sys.stderr, "indexing: %s" % fa
+    sys.stderr.write("indexing: %s\n" % fa)
     try:
         run("bwa index %s" % fa)
     except:
@@ -224,7 +227,7 @@ def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None,
     # penalize clipping and unpaired. lower penalty on mismatches (-B)
     cmd = ("|bwa mem -T 40 -B 3 -L 25 -U 100 -pCMR '{rg}' -t {threads} {extra_args} "
            "{conv_fa} {mfq}").format(**locals())
-    print >>sys.stderr, "running: %s" % cmd.lstrip("|")
+    sys.stderr.write("running: %s\n" % cmd.lstrip("|"))
     as_bam(cmd, fa, prefix, calmd)
 
 
@@ -246,7 +249,7 @@ def as_bam(pfile, fa, prefix, calmd=False):
     cmds.append("samtools index {bam}.bam")
     cmds = [c.format(bam=prefix, fa=fa) for c in cmds]
 
-    print >>sys.stderr, "writing to:\n", cmds[0]
+    sys.stderr.write("writing to:\n%s\n" % cmds[0])
 
     p = nopen("|" + cmds[0], 'w')
     out = p.stdin
@@ -257,14 +260,14 @@ def as_bam(pfile, fa, prefix, calmd=False):
             continue
 
         aln = handle_read(Bam(toks))
-        print >>out, str(aln)
+        out.write(str(aln) + '\n')
 
     p.stdin.flush()
     p.stdout.flush()
     p.communicate()
     out.close()
     for cmd in cmds[1:]:
-        print >>sys.stderr, "running:", cmd.strip()
+        sys.stderr.write("running: %s\n" % cmd.strip())
         assert check_call(cmd.strip(), shell=True) == 0
 
 def handle_header(toks, out):
@@ -348,12 +351,12 @@ write.table(df, row.names=FALSE, quote=FALSE, sep="\t")
 """
     import tempfile
     with tempfile.NamedTemporaryFile(delete=True) as rfh:
-        print >>rfh, r_script
+        rfh.write(r_script + '\n')
         rfh.flush()
         for d in reader('|Rscript {rs_name} {regions} {bams}'.format(
             rs_name=rfh.name, regions=a.regions, bams=" ".join(a.bams)),
             header=False):
-            print "\t".join(d)
+            print("\t".join(d))
 
 
 def tabulate_main(args):
@@ -398,10 +401,11 @@ def tabulate_main(args):
             reference=a.reference,
             mapq=a.map_q,
             bams=" -I ".join(a.bams)).replace("\n", " \\\n")
-    print >>sys.stderr, cmd
+    sys.stderr.write(cmd + '\n')
+
     run(cmd)
-    fmt = "{CHROM}\t{START}\t{POS}\t{PCT}\t{CS}\t{TS}\t{CTX}"
-    print >>sys.stderr, a.prefix + ".cpg.vcf"
+    fmt = "{CHROM}\t{START}\t{POS}\t{PCT}\t{CS}\t{TS}\t{CTX}\n"
+    sys.stderr.write(a.prefix + ".cpg.vcf\n")
     for i, d in enumerate(reader(a.prefix + ".cpg.vcf",
                        skip_while=lambda toks: toks[0] != "#CHROM",
                        header="ordered")):
@@ -412,7 +416,7 @@ def tabulate_main(args):
                 fhs[sample] = open("{prefix}{sample}.cpg.bed"\
                         .format(prefix=a.prefix, sample=sample), "w")
 
-                print >>fhs[sample], "#" + fmt.replace("}", "").replace("{", "")
+                fhs[sample].write("#" + fmt.replace("}", "").replace("{", ""))
         if not d['FILTER'] in (".", "PASS"): continue
         d['START'] = str(int(d['POS']) - 1)
         for sample in samples:
@@ -427,7 +431,7 @@ def tabulate_main(args):
                 continue
             else:
                 d['PCT'] = "%i" % (100 * d['CS'] / float(d['CS'] + d['TS']))
-            print >>fhs[sample], fmt.format(**d)
+            fhs[sample].write(fmt.format(**d))
 
 
 def main(args=sys.argv[1:]):
