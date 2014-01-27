@@ -43,7 +43,7 @@ Installation
 
 `bwa-meth` depends on 
 
- + python 2.7 
+ + python 2.7+ (including python3)
    - `toolshed` library. can be installed with: 
       * `easy_install toolshed` or
       * `pip install toolshed`
