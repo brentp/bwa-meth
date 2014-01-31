@@ -1,3 +1,4 @@
+# make figure 1 from paper
 options(stringsAsFactors=FALSE)
 library(ggplot2)
 

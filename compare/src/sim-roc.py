@@ -60,7 +60,6 @@ def count_on_off(bam, flags, pad):
 
 
 
-FLAGS="-F0x100 -f2"
 FLAGS="-F%i" % (4 | 0x100)
 def main(bams, reads=None, flags=FLAGS, pad=2002):
     reads = 2 * float(nopen("|bioawk -c fastx 'END { print NR }' %s" % reads).next())

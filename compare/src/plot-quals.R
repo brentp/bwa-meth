@@ -6,6 +6,8 @@ args = commandArgs(TRUE)
 
 df = read.delim(args[1])
 
+eps = args[2]
+
 df[df$method == "bis1", "method"] = "bismark"
 df$method = factor(df$method, levels=c("last", "bsmap", "gsnap", "bwa", "bismark"))
 df = df[df$qual > 0,]
@@ -20,16 +22,15 @@ require("grid")
 
 
 p = ggplot(df, aes(x=off, y=on, by=method)) +
-         geom_point(aes(shape=method), size=1.4) +
-         scale_shape(solid = FALSE)
-         #geom_line(aes(linestyle=method), size=1.4) + scale_shape(solid=FALSE)
-         #geom_line(aes(color=method), linetype="dotted") 
+         geom_point(aes(color=method), size=1.4) +
+         scale_shape(solid = FALSE) +
+         geom_line(aes(color=method), linetype="dotted") 
 p = p + ylab("% Reads On Target")
 p = p + xlab("% Reads Off Target")
 p = p + theme_bw()
 p = p + theme(
              #legend.position = c(0.55, 0.25),
-             legend.position = c(0.75, 0.25),
+             legend.position = c(0.81, 0.25),
               legend.text=element_text(size=6, lineheight=5),
               axis.text=element_text(size=6),
               axis.title=element_text(size=8),
@@ -37,9 +38,9 @@ p = p + theme(
 
 #              legend.key.height=5
               )
-#p = p + guides(color=guide_legend(ncol=2, title=NULL))
-p = p + guides(shape=guide_legend(ncol=2, title=NULL))
+
+p = p + guides(color=guide_legend(ncol=2, title=NULL))
 #print(p)
-ggsave(file='qual-plot-real.eps', units="cm", width=8.6, height=6.3,
+ggsave(file=args[2], units="cm", width=8.6, height=6.3,
     dpi=1200)
 
