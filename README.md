@@ -2,7 +2,8 @@ bwa-meth
 ========
 
 align BS-Seq reads and tabulate methylation without intermediate temp files.
-This only works for reads from the directional protocol (most common).
+This only works for **paired-end reads from the directional protocol** 
+(most common).
 
 Uses the method employed by methylcoder and Bismark of using *in silico*
 conversion of all C's to T's in both reference and reads.
@@ -42,7 +43,7 @@ Installation
 
 `bwa-meth` depends on 
 
- + python 2.7 
+ + python 2.7+ (including python3)
    - `toolshed` library. can be installed with: 
       * `easy_install toolshed` or
       * `pip install toolshed`
