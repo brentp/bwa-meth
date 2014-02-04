@@ -37,7 +37,7 @@ GSNAP:
     python src/gsnap-meth.py index $REF
 
 bwa-meth:
-    python ../bwa-meth.py index $REF
+    python ../bwameth.py index $REF
 
 last:
     lastdb -w 2 -u /path/to/last-hg/examples/bisulfite_f.seed $REF.last_f $REF 
