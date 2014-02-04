@@ -86,8 +86,8 @@ Note
 
 If you want to simply align some reads. The entire syntax is:
 
-    python bwa-meth.py index /path/to/ref.fasta
-    python bwa-meth.py --reference /path/to/ref.fasta reads_R1.fastq reads_R2.fastq -p myoutput
+    bwameth.py index /path/to/ref.fasta
+    bwameth.py --reference /path/to/ref.fasta reads_R1.fastq reads_R2.fastq -p myoutput
 
 and the result will appear in myoutput.bam
 
