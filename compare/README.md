@@ -15,7 +15,7 @@ You can then generate the trimmed versions as:
 
 
 Simulated
-+++++++++
+---------
 
 To generate the simulated data, see `src/gen-simulated.sh`
 which should require only minimal changes to point to the
