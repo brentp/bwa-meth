@@ -71,6 +71,7 @@ def convert_reads(fq1, fq2, out=sys.stdout):
         fq2 = nopen(fq2)
         q2_iter = izip(*[fq2] * 4)
     else:
+        sys.stderr.write("WARNING: running bwameth in single-end mode\n")
         q2_iter = repeat((None, None, None, None))
     q1_iter = izip(*[fq1] * 4)
 
