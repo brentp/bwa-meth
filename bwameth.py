@@ -19,9 +19,10 @@ import os
 import os.path as op
 import argparse
 from subprocess import check_call
+from itertools import groupby, repeat
 
 try:
-    from itertools import groupby, izip
+    from itertools import izip
     import string
     maketrans = string.maketrans
 except ImportError: # python3
@@ -29,7 +30,7 @@ except ImportError: # python3
     maketrans = str.maketrans
 from toolshed import nopen, reader, is_newer_b
 
-__version__ =  "0.06"
+__version__ =  "0.07"
 
 def checkX(cmd):
     for p in os.environ['PATH'].split(":"):
@@ -65,15 +66,18 @@ def fasta_iter(fasta_name):
 
 def convert_reads(fq1, fq2, out=sys.stdout):
     sys.stderr.write("converting reads in %s,%s\n" % (fq1, fq2))
-    fq1, fq2 = nopen(fq1), nopen(fq2)
+    fq1 = nopen(fq1)
+    if fq2 != "NA":
+        fq2 = nopen(fq2)
+        q2_iter = izip(*[fq2] * 4)
+    else:
+        q2_iter = repeat((None, None, None, None))
     q1_iter = izip(*[fq1] * 4)
-    q2_iter = izip(*[fq2] * 4)
 
-    jj = 0
     lt80 = 0
     for pair in izip(q1_iter, q2_iter):
-
         for read_i, (name, seq, _, qual) in enumerate(pair):
+            if name is None: continue
             name = name.rstrip("\r\n").split(" ")[0]
             if name.endswith(("_R1", "_R2")):
                 name = name[:-3]
@@ -92,8 +96,6 @@ def convert_reads(fq1, fq2, out=sys.stdout):
             seq = seq.replace(char_a, char_b)
             out.write("".join((name, seq, "\n+\n", qual)))
 
-        jj += 1
-        #if jj > 190000: break
     out.flush()
     out.close()
     if lt80 > 50:
@@ -219,7 +221,7 @@ class Bam(object):
         return [x for x in self.other if x.startswith("YC:Z:")]
 
 
-def rname(fq1, fq2):
+def rname(fq1, fq2=""):
     def name(f):
         n = op.basename(op.splitext(f)[0])
         if n.endswith('.fastq'): n = n[:-6]
@@ -229,7 +231,7 @@ def rname(fq1, fq2):
 
 
 def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None,
-            calmd=False):
+            calmd=False, paired=True):
     conv_fa = convert_fasta(fa, just_name=True)
     if not is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.sa')):
         raise BWAMethException("first run bwameth.py index %s" % fa)
@@ -238,8 +240,12 @@ def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None,
         rg = '@RG\tID:{rg}\tSM:{rg}'.format(rg=rg)
 
     # penalize clipping and unpaired. lower penalty on mismatches (-B)
-    cmd = ("|bwa mem -T 40 -B 3 -L 25 -U 100 -pCMR '{rg}' -t {threads} {extra_args} "
-           "{conv_fa} {mfq}").format(**locals())
+    cmd = "|bwa mem -T 40 -B 3 -L 25 -CM "
+
+    if paired:
+        cmd += ("-U 100 -p ")
+    cmd += "-R '{rg}' -t {threads} {extra_args} {conv_fa} {mfq}"
+    cmd = cmd.format(**locals())
     sys.stderr.write("running: %s\n" % cmd.lstrip("|"))
     as_bam(cmd, fa, prefix, calmd)
 
@@ -475,11 +481,11 @@ def main(args=sys.argv[1:]):
     # for the 2nd file. use G => A and bwa's support for streaming.
     script = __file__
     conv_fqs = "'<%s %s c2t %s %s'" % (sys.executable, script, args.fastqs[0],
-                                                   args.fastqs[1])
+               args.fastqs[1] if len(args.fastqs) > 1 else 'NA')
 
     bwa_mem(args.reference, conv_fqs, "", prefix=args.prefix,
              threads=args.threads, rg=args.read_group or
-             rname(*args.fastqs), calmd=args.calmd)
+             rname(*args.fastqs), calmd=args.calmd, paired=len(args.fastqs) == 2)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
