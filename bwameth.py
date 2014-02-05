@@ -70,6 +70,7 @@ def convert_reads(fq1, fq2, out=sys.stdout):
     q2_iter = izip(*[fq2] * 4)
 
     jj = 0
+    lt80 = 0
     for pair in izip(q1_iter, q2_iter):
 
         for read_i, (name, seq, _, qual) in enumerate(pair):
@@ -80,6 +81,9 @@ def convert_reads(fq1, fq2, out=sys.stdout):
                 name = name[:-2]
 
             seq = seq.upper().rstrip('\n')
+            if len(seq) < 80:
+                lt80 += 1
+
             char_a, char_b = ['CT', 'GA'][read_i]
             # keep original sequence as name.
             name = " ".join((name,
@@ -92,6 +96,10 @@ def convert_reads(fq1, fq2, out=sys.stdout):
         #if jj > 190000: break
     out.flush()
     out.close()
+    if lt80 > 50:
+        sys.stderr.write("WARNING: %i reads with length < 80\n" % lt80)
+        sys.stderr.write("       : this program is designed for long reads\n")
+
 
 def convert_fasta(ref_fasta, just_name=False):
     out_fa = op.splitext(ref_fasta)[0] + ".c2t.fa"
