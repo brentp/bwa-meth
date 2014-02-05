@@ -2,8 +2,14 @@ Setup
 =====
 
 The base files for the analysis should be in data/
+
     real_R1.fastq.gz
     real_R2.fastq.gz
+
+You can get these from (must use browser, not wget)
+
+    https://www.copy.com/s/Kt8wNsWEUBAI/real_R1.fastq.gz
+    https://www.copy.com/s/Arx7DLSQyCm7/real_R2.fastq.gz
 
 You can then generate the trimmed versions as:
 
@@ -11,7 +17,7 @@ You can then generate the trimmed versions as:
 
 
 Simulated
-+++++++++
+---------
 
 To generate the simulated data, see `src/gen-simulated.sh`
 which should require only minimal changes to point to the
@@ -37,7 +43,7 @@ GSNAP:
     python src/gsnap-meth.py index $REF
 
 bwa-meth:
-    python ../bwa-meth.py index $REF
+    python ../bwameth.py index $REF
 
 last:
     lastdb -w 2 -u /path/to/last-hg/examples/bisulfite_f.seed $REF.last_f $REF 
@@ -80,8 +86,8 @@ Note
 
 If you want to simply align some reads. The entire syntax is:
 
-    python bwa-meth.py index /path/to/ref.fasta
-    python bwa-meth.py --reference /path/to/ref.fasta reads_R1.fastq reads_R2.fastq -p myoutput
+    bwameth.py index /path/to/ref.fasta
+    bwameth.py --reference /path/to/ref.fasta reads_R1.fastq reads_R2.fastq -p myoutput
 
 and the result will appear in myoutput.bam
 

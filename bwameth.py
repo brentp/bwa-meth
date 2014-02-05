@@ -22,10 +22,12 @@ from subprocess import check_call
 
 try:
     from itertools import groupby, izip
+    import string
+    maketrans = string.maketrans
 except ImportError: # python3
     izip = zip
+    maketrans = str.maketrans
 from toolshed import nopen, reader, is_newer_b
-import string
 
 __version__ =  "0.06"
 
@@ -39,12 +41,15 @@ def checkX(cmd):
 checkX('samtools')
 checkX('bwa')
 
+
 class BWAMethException(Exception): pass
 
-def comp(s, _comp=string.maketrans('ATCG', 'TAGC')):
+def comp(s, _comp=maketrans('ATCG', 'TAGC')):
     return s.translate(_comp)
 
 def wrap(text, width=100): # much faster than textwrap
+    try: xrange
+    except NameError: xrange = range
     for s in xrange(0, len(text), width):
         yield text[s:s+width]
 
@@ -55,8 +60,8 @@ def fasta_iter(fasta_name):
     fh = nopen(fasta_name)
     faiter = (x[1] for x in groupby(fh, lambda line: line[0] == ">"))
     for header in faiter:
-        header = header.next()[1:].strip()
-        yield header, "".join(s.strip() for s in faiter.next()).upper()
+        header = next(header)[1:].strip()
+        yield header, "".join(s.strip() for s in next(faiter)).upper()
 
 def convert_reads(fq1, fq2, out=sys.stdout):
     sys.stderr.write("converting reads in %s,%s\n" % (fq1, fq2))
@@ -65,6 +70,7 @@ def convert_reads(fq1, fq2, out=sys.stdout):
     q2_iter = izip(*[fq2] * 4)
 
     jj = 0
+    lt80 = 0
     for pair in izip(q1_iter, q2_iter):
 
         for read_i, (name, seq, _, qual) in enumerate(pair):
@@ -75,6 +81,9 @@ def convert_reads(fq1, fq2, out=sys.stdout):
                 name = name[:-2]
 
             seq = seq.upper().rstrip('\n')
+            if len(seq) < 80:
+                lt80 += 1
+
             char_a, char_b = ['CT', 'GA'][read_i]
             # keep original sequence as name.
             name = " ".join((name,
@@ -87,6 +96,10 @@ def convert_reads(fq1, fq2, out=sys.stdout):
         #if jj > 190000: break
     out.flush()
     out.close()
+    if lt80 > 50:
+        sys.stderr.write("WARNING: %i reads with length < 80\n" % lt80)
+        sys.stderr.write("       : this program is designed for long reads\n")
+
 
 def convert_fasta(ref_fasta, just_name=False):
     out_fa = op.splitext(ref_fasta)[0] + ".c2t.fa"
@@ -175,7 +188,7 @@ class Bam(object):
             raise StopIteration
         cig_iter = groupby(self.cigar, lambda c: c.isdigit())
         for g, n in cig_iter:
-            yield int("".join(n)), "".join(cig_iter.next()[1])
+            yield int("".join(n)), "".join(next(cig_iter)[1])
 
     def cig_len(self):
         return sum(c[0] for c in self.cigs() if c[1] in
@@ -461,7 +474,7 @@ def main(args=sys.argv[1:]):
     args = p.parse_args(args)
     # for the 2nd file. use G => A and bwa's support for streaming.
     script = __file__
-    conv_fqs = "'<python %s c2t %s %s'" % (script, args.fastqs[0],
+    conv_fqs = "'<%s %s c2t %s %s'" % (sys.executable, script, args.fastqs[0],
                                                    args.fastqs[1])
 
     bwa_mem(args.reference, conv_fqs, "", prefix=args.prefix,
