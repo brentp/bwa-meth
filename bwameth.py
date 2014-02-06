@@ -18,6 +18,7 @@ import sys
 import os
 import os.path as op
 import argparse
+import gzip
 from subprocess import check_call
 from itertools import groupby, repeat
 
@@ -393,6 +394,12 @@ def tabulate_main(args):
     p.add_argument("--map-q", type=int, default=10, help="only tabulate "
                    "methylation for reads with at least this mapping quality")
     p.add_argument("--bissnp", help="path to bissnp jar")
+    p.add_argument("--format", help="format for output summary."
+            " default matches bismark begraph output with: %(default)r"
+            " Where cs and ts are the counts of C's and T's and pct is the"
+            " percent methylation. Available variables in addition to those"
+            " are 'end' and 'ctx', where ctx is the  cpg context (CG/CHH/CHG).",
+            default="{chrom}\t{start}\t{start}\t{pct}\t{cs}\t{ts}\t{ctx}")
     p.add_argument("bams", nargs="+")
 
     a = p.parse_args(args)
@@ -424,7 +431,7 @@ def tabulate_main(args):
     sys.stderr.write(cmd + '\n')
 
     run(cmd)
-    fmt = "{CHROM}\t{START}\t{POS}\t{PCT}\t{CS}\t{TS}\t{CTX}\n"
+    fmt = a.format.rstrip('\n') + '\n'
     sys.stderr.write(a.prefix + ".cpg.vcf\n")
     for i, d in enumerate(reader(a.prefix + ".cpg.vcf",
                        skip_while=lambda toks: toks[0] != "#CHROM",
@@ -433,24 +440,26 @@ def tabulate_main(args):
             samples = d.keys()[9:]
             fhs = {}
             for sample in samples:
-                fhs[sample] = open("{prefix}{sample}.cpg.bed"\
+                fhs[sample] = gzip.open("{prefix}{sample}.cpg.bed.gz"\
                         .format(prefix=a.prefix, sample=sample), "w")
 
                 fhs[sample].write("#" + fmt.replace("}", "").replace("{", ""))
         if not d['FILTER'] in (".", "PASS"): continue
-        d['START'] = str(int(d['POS']) - 1)
+
+        d['start'], d['end'] = str(int(d['POS']) - 1), d['POS']
+        d['chrom'] = d['CHROM']
         for sample in samples:
             info = dict(zip(d['FORMAT'].split(":"), d[sample].split(":")))
             try:
-                d['CS'] = int(info['CM'])  # (M)ethylated
-                d['TS'] = int(info['CU'])  # (U)n
+                d['cs'] = int(info['CM'])  # (M)ethylated
+                d['ts'] = int(info['CU'])  # (U)n
             except ValueError:
                 continue
-            d['CTX'] = info['CP']
-            if d['CS'] + d['TS'] == 0:
+            d['ctx'] = info['CP']
+            if d['cs'] + d['ts'] == 0:
                 continue
             else:
-                d['PCT'] = "%i" % (100 * d['CS'] / float(d['CS'] + d['TS']))
+                d['pct'] = "%.1f" % (100 * d['cs'] / float(d['cs'] + d['ts']))
             fhs[sample].write(fmt.format(**d))
 
 
