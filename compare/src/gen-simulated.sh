@@ -1,7 +1,8 @@
 . ./common.sh
+
 cd data/
 Sherman \
-    --genome_folder /data/Schwartz/brentp/mm10/ \
+    --genome_folder $BIS_REF \
     --length 100 \
     -n 1000000 \
     -pe \
