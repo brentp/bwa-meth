@@ -42,19 +42,21 @@ Then tabulate the methylation assuming you have the BisSNP.jar file at $BISSNP
              bwa-meth.bam
 
 ```
-This will create `ex`.cpg.vcf and `ex`.snp.vcf along with a .BED file for each bam:
+This will create `ex`.cpg.vcf and `ex`.snp.vcf along with a .bed.gz file for each bam:
 
 ```Shell
-$ head ext_R.cpg.bed 
+$ zless ext_R.cpg.bed.gz | head
 ```
 
-    #CHROM	START	POS	PCT	CS	TS	CTX
-    chrREF	507	508	100	1	0	CG
-    chrREF	524	525	0	0	1	C
-    chrREF	566	567	0	0	1	C
-    chrREF	582	583	0	0	1	CG
-    chrREF	623	624	0	0	1	CG
-    chrREF	1782	1783	100	1	0	CG
-    chrREF	1791	1792	0	0	1	CG
-    chrREF	1798	1799	0	0	1	C
-    chrREF	1808	1809	100	1	0	CG
+
+    #chrom  start   start   pct cs  ts  ctx
+    chrREF  5482    5482    0.0 0   1   CG
+    chrREF  5540    5540    100.0   1   0   CG
+    chrREF  14606   14606   100.0   1   0   CG
+    chrREF  23207   23207   0.0 0   2   CG
+    chrREF  23219   23219   0.0 0   2   CG
+    chrREF  23260   23260   0.0 0   2   CG
+    chrREF  23269   23269   0.0 0   1   CG
+    chrREF  23288   23288   0.0 0   2   CG
+    chrREF  23323   23323   0.0 0   1   CG
+
