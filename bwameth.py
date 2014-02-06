@@ -31,7 +31,7 @@ except ImportError: # python3
     maketrans = str.maketrans
 from toolshed import nopen, reader, is_newer_b
 
-__version__ =  "0.07"
+__version__ = "0.07"
 
 def checkX(cmd):
     for p in os.environ['PATH'].split(":"):
@@ -42,7 +42,6 @@ def checkX(cmd):
 
 checkX('samtools')
 checkX('bwa')
-
 
 class BWAMethException(Exception): pass
 
