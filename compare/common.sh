@@ -1,11 +1,12 @@
 REF=/data/Schwartz/brentp/mm10/ref/mm10.fa
 TEMP=/scratch/brentp/
 
+PATH=$PATH:~/src/sherman/
+
 set -eo pipefail
 
 name=real
 name=sim
-name=dnemsim
 
 
 FQ1=data/${name}_R1.fastq.gz
@@ -18,7 +19,7 @@ TRIM_FQ2=${FQ2/.fastq/.trim.fastq}
 OUT=results/
 
 
-mkdir -p $OUT/trim/ logs/
+mkdir -p $OUT/trim/ logs/ data/
 
 #if [ ! -e $TRIM_FQ1 ]; then
 #    exit 1
