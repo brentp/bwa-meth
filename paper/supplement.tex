@@ -1,0 +1,171 @@
+\documentclass[12pt]{article}
+%\usepackage[english]{babel}
+%\usepackage[utf8x]{inputenc}
+\usepackage{fullpage}
+\usepackage{float}
+
+\usepackage{listings}
+\usepackage{color}
+
+\title{Supplemental Information}
+\author{Pedersen \textit{et al.}}
+
+\date{}
+
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{mymauve}{rgb}{0.58,0,0.82}
+
+\lstset{ %
+  backgroundcolor=\color{white},   % choose the background color
+  basicstyle=\footnotesize,        % size of fonts used for the code
+  breaklines=true,                 % automatic line breaking only at whitespace
+  captionpos=b,                    % sets the caption-position to bottom
+  commentstyle=\color{mygreen},    % comment style
+  escapeinside={\%*}{*)},          % if you want to add LaTeX within your code
+  keywordstyle=\color{blue},       % keyword style
+  stringstyle=\color{mymauve},     % string literal style
+}
+\usepackage{graphicx}
+
+\begin{document}
+
+\maketitle
+
+\section{Comparison On Real Data}
+
+We compared 5 aligners on real data as described in the text. Supplemental
+Figure 1 below shows a color version of Figure 1 from the main text.
+
+\begin{figure}[H]%supplemental figure1
+    \centerline{\includegraphics[width=86mm]{supp-1-real-qual-summary.eps}}
+    \caption{Percent of paired-end, 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner. This is a color version of figure 1
+from the paper}\label{suppfig:01}
+\end{figure}
+
+When we trim the reads with \emph{Sickle} before aligning, the result is shown below in Supplemental Figure 2. We report the percent of reads aligned relative
+to the original count in the untrimmed data because we are interested in the
+overall mapping rate.
+
+%\begin{figure}[!htpb]%figure1
+\begin{figure}[H]%figure1
+    \centerline{\includegraphics[width=86mm]{supp-1-real-trim-qual-summary.eps}}
+    \caption{Percent of paired-end, \emph{trimmed} 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner.
+from the paper}\label{suppfig:02}
+\end{figure}
+
+\subsection{Resources}
+
+%http://truben.no/latex/table/
+\begin{table}[H]
+    \centering
+    \caption{Resources on real data}
+    \begin{tabular}{lllll} \hline
+    trimmed & program & time(min) & mem(GB) & dataset \\ \hline
+    no      & bis1    & 573.18    & 8.30    & real    \\
+    no      & bsmap   & 7994.27   & 23.11   & real    \\
+    no      & bwa     & 356.04    & 15.44   & real    \\
+    no      & gsnap   & 3393.78   & 10.98   & real    \\
+    no      & last    & 621.75    & 34.53   & real    \\
+    yes     & bis1    & 584.45    & 8.28    & real    \\
+    yes     & bsmap   & 4941.04   & 23.29   & real    \\
+    yes     & bwa     & 341.75    & 16.75   & real    \\
+    yes     & gsnap   & 2779.10   & 12.12   & real    \\
+    yes     & last    & 536.70    & 34.53   & real    \\
+    \end{tabular}
+\end{table}
+
+\section{Comparison On Simulated Data}
+Paired-end, 100-base reads were simulated using the tool \emph{Sherman} (http://www.bioinformatics.babraham.ac.uk/projects/sherman/) and aligned using the
+same parameters as for Figure 1 for the main paper.
+Supplemental Figure 3 below shows the result for these simulations.
+
+
+\begin{figure}[H]%figure3
+    \centerline{\includegraphics[width=86mm]{supp-2-sim-qual-summary.eps}}
+    \caption{Percent of paired-end, \emph{simulated} 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner.
+from the paper}\label{suppfig:03}
+\end{figure}
+
+Supplemental Figure 4 below shows the result for trimmed and simulated reads.
+Trimming removes some read-pairs if one or both reads had low-quality. We
+report the percent of reads aligned relative to the original, un-trimmed number
+since we are interested in the overall mapping rate.
+
+\begin{figure}[H]%figure3
+    \centerline{\includegraphics[width=86mm]{supp-2-sim-trim-qual-summary.eps}}
+    \caption{Percent of paired-end, \emph{trimmed}, \emph{simulated} 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner.
+from the paper}\label{suppfig:04}
+\end{figure}
+
+\subsection{Resources}
+
+%http://truben.no/latex/table/
+\begin{table}[H]
+    \centering
+    \caption{Resources on simulated data}
+    \begin{tabular}{lllll} \hline
+    trimmed & program & time(min) & mem(GB) & dataset \\ \hline
+    no      & bis1    & 62.00     & 8.27    & sim     \\
+    no      & bsmap   & 131.92    & 22.93   & sim     \\
+    no      & bwa     & 122.05    & 16.47   & sim     \\
+    no      & gsnap   & 244.82    & 9.50    & sim     \\
+    no      & last    & 131.17    & 25.90   & sim     \\
+    yes     & bis1    & 62.13     & 8.27    & sim     \\
+    yes     & bsmap   & 65.00     & 22.92   & sim     \\
+    yes     & bwa     & 160.39    & 20.98   & sim     \\
+    yes     & gsnap   & 33.21     & 9.55    & sim     \\
+    yes     & last    & 144.46    & 25.90   & sim     \\
+    \end{tabular}
+\end{table}
+
+
+\section{Mapping and Trimming}
+We note that while trimming seems to improve accuracy for simulated data,
+it does not improve anything for real data. This could be because
+the reads from the targetted protocol are likely to come from CpG-rich regions
+with simple sequence and trimming them increases the possiblity for mis-maps
+and reduces the likelihood of a unique mapping.
+
+\section{\textit{bwa-meth} Installation And Requirements}
+
+\textit{Bwa-meth} depends on samtools and a single python library, \textit{toolshed}.
+The latter can be installed by running \emph{python setup.py install} from the main
+directory of the \textit{bwa-meth} project. Samtools is a C library installed on most
+systems and available at https://github.com/samtools/samtools.
+
+For tabulation of methylation by CpG, \emph{Bis-SNP} \cite{bissnp} is required.
+The java .jar file is available from: http://sourceforge.net/projects/bissnp/files/
+
+For CNV detection from BS-Seq data, the R package \emph{cn.mops} \cite{cnmops} is required.
+It is available
+from bioconductor \cite{bioconductor} at: http://bioconductor.org/packages/devel/bioc/html/cn.mops.html
+
+\section{Additional Features}
+\textit{Bwa-meth} and GSNAP are the only program that outputs a BAM file that passes picard's ValidateSam without errors.
+Last does not report the proper pair information in all cases and none of the other aligners add a read-group.
+For the comparison, we added sorting and forced SAM output by the other aligners regardless of their default.
+\textit{Bwa-meth} outputs a read-group for each sample by default and allows that to be customized.
+
+\textit{Bwa-meth} defers tabulation of the methylation scores to Bis-SNP \cite{bissnp} by offering a simplified interface:
+\begin{lstlisting}[language=bash]
+bwa-meth tabulate \
+    --trim 3,3 \
+    --map-q 30 \
+    --bissnp BisSNP-0.82.2.jar \
+     --reference /path/to/ref.fasta \
+     --prefix out \
+     input.bam
+\end{lstlisting}
+Where the arguments are sent to Bis-SNP to, for example trim the first and last 3 bases
+from each read to avoid bias.
+
+A full example on real data is at:
+https://github.com/brentp/bwa-meth/tree/master/example/
+
+%\begin{thebibliography}{}
+\bibliographystyle{abbrv}
+    \bibliography{document}
+%\end{thebibliography}
+
+\end{document}
