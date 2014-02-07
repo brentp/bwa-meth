@@ -1,5 +1,7 @@
 REF=/data/Schwartz/brentp/mm10/ref/mm10.fa
-BIS_REF=/data/Schwartz/brentp/mm10/
+BIS_REF=$(dirname $REF)
+
+
 TEMP=/scratch/brentp/
 
 module load bsmap

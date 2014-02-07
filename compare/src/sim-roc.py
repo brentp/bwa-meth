@@ -1,5 +1,5 @@
-import os
 import os.path as op
+import re
 import sys
 from toolshed import reader, nopen
 from collections import defaultdict
@@ -17,6 +17,8 @@ def count_on_off(bam, flags, pad):
     off_count = [0] * 256
     rcounts = defaultdict(int)
 
+    posn = re.compile(".*_(.+):(\d+)-(\d+)")
+
     # chr1b:3001315:+__chr1b:3001467:-        99      chr1    3001316 60 100M 
     print bam
     for toks in reader("|samtools view {flags} {bam}".format(**locals()),
@@ -25,28 +27,22 @@ def count_on_off(bam, flags, pad):
         if toks[0].endswith(("_R1", "_R2")):
             toks[0] = toks[0][:-3]
 
-        # chr1b:3001315:+__chr1b:3001467:-
         if "random" in toks[0]: continue
         if "chrUn" in toks[0]: continue
 
         rname, flag = toks[0], int(toks[1])
         rcounts[rname] += 1
+        # @2_chr4:72040172-72040686_R1
         if rcounts[rname] > 2:
             raise Exception("%s:%s", (bam, rname))
-        if "-PAIR-" in rname:
-            lname, rname = rname.split("-PAIR-")
-            name = lname if flag & 0x40 else rname if flag & 0x80 else None
-        else:
-            name = rname.split("_", 1)[1]
 
-        assert name is not None
-        chrom, pos = name.split(":")[:2]
-        chrom, pos = chrom.strip("_"), pos.strip("_")
-        if "-" in pos:
-            pos = int(pos.split("-")[0 if (flag & 0x40) else 1].split("_")[0])
-        else:
-            assert chrom[-1] in "ab", chrom
-            chrom, pos = chrom[:-1], int(pos)
+        try:
+            chrom, start, end = re.match(posn, rname).groups(0)
+        except:
+            print rname
+            raise
+
+        pos = int(start if flag & 0x40 else end)
         on = chrom == toks[2] and abs(pos - int(toks[3])) <= pad
         qual = int(toks[4])
         if on:
