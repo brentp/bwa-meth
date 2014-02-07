@@ -94,7 +94,7 @@ def main(bams, reads=None, flags=FLAGS, pad=2002):
 if __name__ == "__main__":
     import argparse
     p = argparse.ArgumentParser()
-    p.add_argument("--reads", help="reads file")
+    p.add_argument("--reads", help="reads file", required=True)
     p.add_argument("bams", nargs="+")
 
     a = p.parse_args()
