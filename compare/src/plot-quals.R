@@ -5,11 +5,10 @@ library(ggplot2)
 args = commandArgs(TRUE)
 
 df = read.delim(args[1])
+out_eps_or_png = args[2]
 
-eps = args[2]
-
-df[df$method == "bis1", "method"] = "bismark"
-df$method = factor(df$method, levels=c("last", "bsmap", "gsnap", "bwa", "bismark"))
+df[df$method == "bis2", "method"] = "bismark2"
+df$method = factor(df$method, levels=c("last", "bsmap", "gsnap", "bwa", "bismark2"))
 df = df[df$qual > 0,]
 
 df = df[order(df$qual),]
@@ -30,7 +29,7 @@ p = p + xlab("% Reads Off Target")
 p = p + theme_bw()
 p = p + theme(
              #legend.position = c(0.55, 0.25),
-             legend.position = c(0.81, 0.25),
+             legend.position = c(0.61, 0.25),
               legend.text=element_text(size=6, lineheight=5),
               axis.text=element_text(size=6),
               axis.title=element_text(size=8),
@@ -41,6 +40,6 @@ p = p + theme(
 
 p = p + guides(color=guide_legend(ncol=2, title=NULL))
 #print(p)
-ggsave(file=args[2], units="cm", width=8.6, height=6.3,
+ggsave(file=out_eps_or_png, units="cm", width=8.6, height=6.3,
     dpi=1200)
 
