@@ -9,7 +9,7 @@ Sherman \
     -X 800 \
     --CG_conversion 25 \
     --CH_conversion 95 \
-    --error_rate 0.01 
+    --error_rate 1
 
 mv simulated_1.fastq sim_R1.fastq && gzip -f sim_R1.fastq
 mv simulated_2.fastq sim_R2.fastq && gzip -f sim_R2.fastq
