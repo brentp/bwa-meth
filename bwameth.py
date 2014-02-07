@@ -7,7 +7,7 @@ A command to this program like:
 
 Gets converted to:
 
-    bwa mem -pCMR ref.c2t.fa '<python bwameth.py c2t A.fq B.fq'
+    bwa mem -pCMR ref.fa.bwameth.c2t '<python bwameth.py c2t A.fq B.fq'
 
 So that A.fq has C's converted to T's and B.fq has G's converted to A's
 and both are streamed directly to the aligner without a temporary file.
@@ -105,7 +105,7 @@ def convert_reads(fq1, fq2, out=sys.stdout):
 
 
 def convert_fasta(ref_fasta, just_name=False):
-    out_fa = op.splitext(ref_fasta)[0] + ".c2t.fa"
+    out_fa = ref_fasta + ".bwameth.c2t"
     if just_name:
         return out_fa
     msg = "c2t in %s to %s" % (ref_fasta, out_fa)
@@ -144,7 +144,7 @@ def bwa_index(fa):
         return
     sys.stderr.write("indexing: %s\n" % fa)
     try:
-        run("bwa index %s" % fa)
+        run("bwa index -a bwtsw %s" % fa)
     except:
         if op.exists(fa + ".amb"):
             os.unlink(fa + ".amb")
