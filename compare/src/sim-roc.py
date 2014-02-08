@@ -20,7 +20,7 @@ def count_on_off(bam, flags, pad):
     posn = re.compile(".*_(.+):(\d+)-(\d+)")
 
     # chr1b:3001315:+__chr1b:3001467:-        99      chr1    3001316 60 100M 
-    print bam
+    print >>sys.stderr, bam
     for toks in reader("|samtools view {flags} {bam}".format(**locals()),
             header=False):
         if toks[0][0] == "@": continue
@@ -39,7 +39,7 @@ def count_on_off(bam, flags, pad):
         try:
             chrom, start, end = re.match(posn, rname).groups(0)
         except:
-            print rname
+            print >>sys.stderr, rname
             raise
 
         pos = int(start if flag & 0x40 else end)
@@ -73,10 +73,10 @@ def main(bams, reads=None, flags=FLAGS, pad=2002):
     pl.legend(loc='lower right')
     pl.xlim(xmin=0)
     pl.ylim(ymin=0)
-    print reads
+    print >>sys.stderr, reads
     pl.show()
 
-    out = open('sim-qual-summary.txt', 'w')
+    out = sys.stdout
     print >>out, "qual\tmethod\toff\ton"
 
     for qual in range(0, 256):

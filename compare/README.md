@@ -69,7 +69,15 @@ For simulated reads:
 
     $ python src/sim-roc.py \
         --reads data/sim_R1.fastq.gz \ # this is to get the number of input reads
-        results/*-sim.bam
+        results/*-sim.bam > sim-trim-qual-summ.txt
+
+This will make a plot with matplotlib that's not very pretty. One can then create
+a nice ggplot, plot with:
+
+    Rscript src/plot-quals.R sim-trim-qual-summ.txt sim-trim-qual-summ.png
+
+And the output will appear in the png (or .pdf or .eps) specified as the 2nd arg.
+    
 
 For real reads:
 
