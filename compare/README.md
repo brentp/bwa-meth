@@ -15,6 +15,10 @@ You can then generate the trimmed versions as:
 
     bash src/trim.sh data/real_R{1,2}.fastq.gz 
 
+or:
+
+    bash src/trim-galore.sh data/real_R{1,2}.fastq.gz 
+
 
 Simulated
 ---------
