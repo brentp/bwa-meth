@@ -16,8 +16,11 @@ See manuscript: http://arxiv.org/abs/1401.1129 for details.
 Optimal alignment is the upper-left corner. Curves are drawn by varying the
 mapping quality cutoff for alingers that use it.
 
+This image is on un-trimmed, simulated reads and is in flux as I determine the best
+parameters for each aligner.
 
-Vertical dotted line is mapping quality of 60 for bwa.
+![Untrimmed reads comparison](https://gist.github.com/brentp/bf7d3c3d3f23cc319ed8/raw/acbd7f47312de480c40a4bf873be5bd33a2ba8da/qual-plot.png "Untrimmed, simulated reads")
+
 
 Run.sh scripts for each method are here: https://github.com/brentp/bwa-meth/tree/master/compare
 I have done my best to have each method perform optimally, but no doubt there
