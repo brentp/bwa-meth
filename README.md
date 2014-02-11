@@ -2,8 +2,8 @@ bwa-meth
 ========
 
 align BS-Seq reads and tabulate methylation without intermediate temp files.
-This only works for **paired-end reads from the directional protocol** 
-(most common).
+This works for single-end reads and for **paired-end reads from the
+directional protocol** (most common).
 
 Uses the method employed by methylcoder and Bismark of using *in silico*
 conversion of all C's to T's in both reference and reads.
@@ -16,8 +16,10 @@ See manuscript: http://arxiv.org/abs/1401.1129 for details.
 Optimal alignment is the upper-left corner. Curves are drawn by varying the
 mapping quality cutoff for alingers that use it.
 
+This image is on un-trimmed, simulated reads and is in flux as I determine the best
+parameters for each aligner.
 
-Vertical dotted line is mapping quality of 60 for bwa.
+![Untrimmed reads comparison](https://gist.github.com/brentp/bf7d3c3d3f23cc319ed8/raw/acbd7f47312de480c40a4bf873be5bd33a2ba8da/qual-plot.png "Untrimmed, simulated reads")
 
 Run.sh scripts for each method are here: https://github.com/brentp/bwa-meth/tree/master/compare
 I have done my best to have each method perform optimally, but no doubt there
@@ -34,7 +36,8 @@ The commands:
     bwameth.py index $REF
     bwameth.py --reference $REF some_R1.fastq.gz some_R2.fastq.gz --prefix some.output
 
-will create `some.output.bam` and `some.output.bam.bai`
+will create `some.output.bam` and `some.output.bam.bai`.
+To align single end-reads, specify only 1 file.
 
 See the **full example** at: https://github.com/brentp/bwa-meth/tree/master/example/
 
