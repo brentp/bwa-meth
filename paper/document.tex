@@ -2,6 +2,8 @@
 \copyrightyear{2005}
 \pubyear{2005}
 
+
+
 \begin{document}
 \firstpage{1}
 
@@ -34,10 +36,10 @@ and David A. Schwartz\,$^1$%
 Longer sequencing reads, with at least 200 bases per template are now common.
 While traditional aligners have adopted new strategies to improve the mapping of longer reads,
 aligners specific to bisulfite-sequencing were optimized when much shorter reads
-were the norm. We sought to perform the first comparison using longer reads to
+were the norm. We sought to perform a comparison using longer reads to
 determine which aligners were most accurate and efficient and to evaluate a novel
 software tool, \textit{bwa-meth}, built on a traditional mapper that supports
-insertions, deletions and clipped alignments. We gauge accuracy by comparing
+insertions, deletions and local alignments. We gauge accuracy by comparing
 the number of on and off-target reads from a targeted sequencing project
 and by simulations.
 
@@ -76,7 +78,7 @@ files, high memory-use, long run-time, output that was not suitable for consumpt
 traditional tools, or some combination of these inconveniences. We wrote
 a BS-Seq aligner based on BWA mem \citep{bwamem} to address these
 limitations. This new aligner, 
-\textit{bwa-meth}, allows indels, clipped alignments, and it never writes a
+\textit{bwa-meth}, allows indels, local alignments, and it never writes a
 temporary-file of the reads to disk, instead streaming the \emph{in silico} converted
 reads directly to the aligner.
 
@@ -93,6 +95,9 @@ plot a receiver operating curve (ROC) with true positives as reads within
 and false positives as reads outside of the target regions.
 This will be the first comparison of BS-Seq aligners on real data where accuracy
 can be assessed in an unbiased manner.
+\citealp{shrestha} performed a similar analysis on 35 base reads sequenced from
+the X chromosome and gauging a read as accurately mapped if it should be aligned
+to the X chromosome.
 
 In addition, we perform simulations with 100-base paired-end reads using
 the software from the authors of Bismark. All data were aligned to mouse
@@ -105,7 +110,8 @@ We aligned real and simulated data, both trimmed by quality and
 un-trimmed, using the software and versions in Table \ref{Tab:01}.
 We evaluated a few parameters for each method and report only the
 best-performing here. We trimmed the data based on quality
-using Sickle (https://github.com/najoshi/sickle) default parameters.
+using Trim Galore (\href{http://www.bioinformatics.babraham.ac.uk/projects/trim\_galore/}{http://www.bioinformatics.babraham.ac.uk/projects/trim\_galore/})
+default parameters.
 We considered a real read to be in the target region if it
 was within 101 bases of the target area. 
 
