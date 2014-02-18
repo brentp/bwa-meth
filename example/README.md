@@ -32,6 +32,9 @@ samtools flagstat bwa-meth.bam
 
 Then tabulate the methylation assuming you have the BisSNP.jar file at $BISSNP
 
+**NOTE**: you will need to run `samtools faidx ref.fa` before this will work as
+Bis-SNP assumes there is an index.
+
 ```Shell
     bwameth.py tabulate \
              --trim 3,3 \
