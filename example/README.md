@@ -48,7 +48,7 @@ Bis-SNP assumes there is an index.
 This will create `ex`.cpg.vcf and `ex`.snp.vcf along with a .bed.gz file for each bam:
 
 ```Shell
-$ zless ext_R.cpg.bed.gz | head
+$ head ext_R.cpg.bed
 ```
 
 

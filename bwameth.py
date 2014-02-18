@@ -18,7 +18,6 @@ import sys
 import os
 import os.path as op
 import argparse
-import gzip
 from subprocess import check_call
 from itertools import groupby, repeat
 
@@ -385,7 +384,7 @@ def tabulate_main(args):
     """
     p = argparse.ArgumentParser(__doc__)
     p.add_argument("--reference", help="reference fasta")
-    p.add_argument("-t", "--threads", type=int, default=6)
+    p.add_argument("-t", "--threads", type=int, default=3)
     p.add_argument("--dbsnp", help="optional dbsnp for GATK calibration")
     p.add_argument("--prefix", help="output prefix", default='bmeth-tab')
     p.add_argument("--trim", help="left, right trim to avoid bias",
@@ -403,9 +402,11 @@ def tabulate_main(args):
 
     a = p.parse_args(args)
     assert os.path.exists(a.reference)
-    assert os.path.exists(a.reference + ".fai"), ("run samtools faidx %s" \
-                                                  % a.reference)
-    trim = map(int, a.trim.split(","))
+    if not os.path.exists(a.reference + ".fai"):
+        sys.stderr.write("ERROR: run 'samtools faidx %s' before tabulation\n"
+                         % a.reference)
+        #sys.exit(1)
+    trim = list(map(int, a.trim.split(",")))
 
     cmd = """\
     java -Xmx15g -jar {bissnp}
@@ -436,10 +437,10 @@ def tabulate_main(args):
                        skip_while=lambda toks: toks[0] != "#CHROM",
                        header="ordered")):
         if i == 0:
-            samples = d.keys()[9:]
+            samples = list(d.keys())[9:]
             fhs = {}
             for sample in samples:
-                fhs[sample] = gzip.open("{prefix}{sample}.cpg.bed.gz"\
+                fhs[sample] = open("{prefix}{sample}.cpg.bed"\
                         .format(prefix=a.prefix, sample=sample), "w")
 
                 fhs[sample].write("#" + fmt.replace("}", "").replace("{", ""))
