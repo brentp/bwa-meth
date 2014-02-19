@@ -231,7 +231,7 @@ def rname(fq1, fq2=""):
 
 
 def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None,
-            calmd=False, paired=True):
+            calmd=False, paired=True, set_as_failed=None):
     conv_fa = convert_fasta(fa, just_name=True)
     if not is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.sa')):
         raise BWAMethException("first run bwameth.py index %s" % fa)
@@ -247,14 +247,16 @@ def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None,
     cmd += "-R '{rg}' -t {threads} {extra_args} {conv_fa} {mfq}"
     cmd = cmd.format(**locals())
     sys.stderr.write("running: %s\n" % cmd.lstrip("|"))
-    as_bam(cmd, fa, prefix, calmd)
+    as_bam(cmd, fa, prefix, calmd, set_as_failed)
 
 
-def as_bam(pfile, fa, prefix, calmd=False):
+def as_bam(pfile, fa, prefix, calmd=False, set_as_failed=None):
     """
     pfile: either a file or a |process to generate sam output
     fa: the reference fasta
     prefix: the output prefix or directory
+    set_as_failed: None, 'f', or 'r'. If 'f'. Reads mapping to that strand
+                      are given the sam flag of a failed QC alignment (0x200).
     """
     view = "samtools view -bS - | samtools sort -@3 - "
     if calmd:
@@ -278,7 +280,7 @@ def as_bam(pfile, fa, prefix, calmd=False):
             handle_header(toks, out)
             continue
 
-        aln = handle_read(Bam(toks))
+        aln = handle_read(Bam(toks), set_as_failed)
         out.write(str(aln) + '\n')
 
     p.stdin.flush()
@@ -304,7 +306,7 @@ def handle_header(toks, out):
     out.write("\t".join(toks) + "\n")
 
 
-def handle_read(aln):
+def handle_read(aln, set_as_failed):
 
     orig_seq = aln.original_seq
     # don't need this any more.
@@ -322,6 +324,9 @@ def handle_read(aln):
 
     assert direction in 'fr', (direction, aln)
     aln.other.append('YD:Z:' + direction)
+
+    if set_as_failed == direction:
+        aln.flag |= 0x200
 
     mate_direction = aln.chrom_mate[0]
     if mate_direction not in "*=":
@@ -485,6 +490,14 @@ def main(args=sys.argv[1:]):
     p.add_argument("--calmd", default=False, action="store_true")
     p.add_argument("--read-group", help="read-group to add to bam in same"
             " format as to bwa: '@RG\\tID:foo\\tSM:bar'")
+    p.add_argument('--set-as-failed', help="flag alignments to this strand"
+            " as not passing QC (0x200). Targetted BS-Seq libraries are often"
+            " to a single strand, so we can flag them as QC failures. Note"
+            " f == OT, r == OB. Likely, this will be 'f' as we will expect"
+            " reads to align to the original-bottom (OB) strand and will flag"
+            " as failed those aligning to the forward, or original top (OT).",
+        default=None, choices=('f', 'r'))
+
     p.add_argument("fastqs", nargs="+", help="bs-seq fastqs to align")
 
     args = p.parse_args(args)
@@ -495,7 +508,9 @@ def main(args=sys.argv[1:]):
 
     bwa_mem(args.reference, conv_fqs, "", prefix=args.prefix,
              threads=args.threads, rg=args.read_group or
-             rname(*args.fastqs), calmd=args.calmd, paired=len(args.fastqs) == 2)
+             rname(*args.fastqs), calmd=args.calmd,
+             paired=len(args.fastqs) == 2,
+             set_as_failed=args.set_as_failed)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
