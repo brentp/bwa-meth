@@ -86,8 +86,8 @@ And the output will appear in the png (or .pdf or .eps) specified as the 2nd arg
 For real reads:
 
     $ python src/target-roc.py \
-        --regions data/mm10.capture-regions.bed.gz \
-        --reads data/read_R1.fastq.gz \ # this is to get the number of input reads
+        data/mm10.capture-regions.bed.gz \
+        --reads data/real_R1.fastq.gz \ # this is to get the number of input reads
         results/*-real.bam
 
 Both real and simulated data can also be assesed after trimming.
