@@ -418,8 +418,6 @@ def tabulate_main(args):
         -R {reference}
         -I {bams}
         -T BisulfiteGenotyper
-        -rf DuplicateRead -rf FailsVendorQualityCheck -rf NotPrimaryAlignment
-        -rf BadMate -rf MappingQualityUnavailable -rf UnmappedRead -rf BadCigar
         --trim_5_end_bp {trim5}
         --trim_3_end_bp {trim3}
         -vfn1 {prefix}.cpg.vcf -vfn2 {prefix}.snp.vcf
