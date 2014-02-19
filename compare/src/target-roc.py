@@ -33,7 +33,7 @@ ON  = "| samtools view {bam} -L {regions} {flags}"
 OFF = "| bedtools intersect -ubam -abam {bam} -b {regions} -wa -v \
        | samtools view - {flags}"
 
-def main(regions, bams, reads=None, flags="-F%i" % (0x100 | 0x4), pad=50):
+def main(regions, bams, reads=None, flags="-F%i" % (0x100 | 0x4 | 0x200), pad=50):
     r2 = open(tempfile.mktemp(), 'w')
     for toks in reader(regions, header=False):
         if toks[0][0] == "@" or not (toks[1] + toks[2]).isdigit(): continue

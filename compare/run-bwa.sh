@@ -1,16 +1,17 @@
 . ./common.sh
 
-rm -f logs/bwa-$name.err logs/bwa-$name.out
-echo "python ../bwameth.py --reference $REF \
-        -t 22 -p results/bwa-$name $FQ1 $FQ2" \
-        | bsub -J bwa-$name \
-               -e logs/bwa-$name.err \
-               -o logs/bwa-$name.out -n 12
+cmd="python ../bwameth.py --reference $REF -t 22 --set-as-failed f -p "
+prog=bwar
+
+rm -f logs/${prog}-$name.err logs/${prog}-$name.out
+echo "$cmd results/${prog}-$name $FQ1 $FQ2" \
+        | bsub -J ${prog}-$name \
+               -e logs/${prog}-$name.err \
+               -o logs/${prog}-$name.out -n 12
 
 
-rm -f logs/trim-bwa-$name.err logs/trim-bwa-$name.out
-echo "python ../bwameth.py --reference $REF \
-        -t 22 -p results/trim/bwa-$name $TRIM_FQ1 $TRIM_FQ2" \
-        | bsub -J trim-bwa-$name \
-               -e logs/trim-bwa-$name.err \
-               -o logs/trim-bwa-$name.out -n 12
+rm -f logs/trim-${prog}-$name.err logs/trim-${prog}-$name.out
+echo "$cmd results/trim/${prog}-$name $TRIM_FQ1 $TRIM_FQ2" \
+        | bsub -J trim-${prog}-$name \
+               -e logs/trim-${prog}-$name.err \
+               -o logs/trim-${prog}-$name.out -n 12
