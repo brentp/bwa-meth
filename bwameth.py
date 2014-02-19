@@ -405,7 +405,7 @@ def tabulate_main(args):
     if not os.path.exists(a.reference + ".fai"):
         sys.stderr.write("ERROR: run 'samtools faidx %s' before tabulation\n"
                          % a.reference)
-        #sys.exit(1)
+        sys.exit(1)
     trim = list(map(int, a.trim.split(",")))
 
     cmd = """\
@@ -413,6 +413,8 @@ def tabulate_main(args):
         -R {reference}
         -I {bams}
         -T BisulfiteGenotyper
+        -rf DuplicateRead -rf FailsVendorQualityCheck -rf NotPrimaryAlignment
+        -rf BadMate -rf MappingQualityUnavailable -rf UnmappedRead -rf BadCigar
         --trim_5_end_bp {trim5}
         --trim_3_end_bp {trim3}
         -vfn1 {prefix}.cpg.vcf -vfn2 {prefix}.snp.vcf
