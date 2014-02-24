@@ -1,11 +1,12 @@
 . ./common.sh
 
-module load gnumap/3.0.2
+module load gnumap
 
-export GNUMAPS=/home/brentp/src/gnumap/gnumaps
-PATH=$PATH:$GNUMAPS/bin:$GNUMAPS/scripts/
-export PATH
+#export GNUMAPS=/home/brentp/src/gnumap/gnumaps
+#PATH=$PATH:$GNUMAPS/bin:$GNUMAPS/scripts/
+#export PATH
 # taken from gnumap-bs paper
+REF=/misc2/$REF
 cmd="gnumaps.pl --genome $REF --lib_type wt1 --acc 0.9 --nt_conv bs --num_threads 8 --outdir"
 
 zless $FQ1 > $$.r1.tmp
@@ -14,6 +15,7 @@ zless $FQ2 > $$.r2.tmp
 rm -f logs/gnumap-$name.err logs/gnumap-$name.out
 echo "$cmd results/gnumapbs-$name/ --pair_1 $$.r1.tmp --pair_2 $$.r2.tmp" \
     | bsub -J gnumap-$name \
+                 -R "rusage[mem=42000]" \
                  -e logs/gnumap-$name.err \
                  -o logs/gnumap-$name.out -n 8
 
