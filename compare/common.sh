@@ -5,6 +5,7 @@ BIS_REF=$(dirname $REF)
 TEMP=/scratch/brentp/
 
 module load bsmap
+module load bison/0.2.4
 
 PATH=$PATH:~/src/sherman/
 
