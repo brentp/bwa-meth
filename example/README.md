@@ -5,7 +5,7 @@ These commands can be run from this directory once `bwa-meth` is installed
 
 ```Shell
 
-# rm ref.c2t* ref.dict ref.fa.fai
+# rm ref.fa.bwameth.* 
 bwameth.py index ref.fa
 bwameth.py --reference ref.fa t_R1.fastq.gz t_R2.fastq.gz -t 12
 
@@ -30,7 +30,32 @@ samtools flagstat bwa-meth.bam
     0 + 0 with mate mapped to a different chr (mapQ>=5)
 
 
-Then tabulate the methylation assuming you have the BisSNP.jar file at $BISSNP
+We can create a bias-plot if the `matplotlib` and `seaborn` python modules
+are installed.::
+
+    $ python ../bias-plot.py bwa-meth.bam ref.fa
+    wrote to bwa-meth.bias.txt
+    saving to bwa-meth.bias.png
+
+The text otuput looks like this::
+
+    $ head -6 bwa-meth.bias.txt
+    base	read_1	read_2
+    1	0.014	0.535
+    2	0.344	0.569
+    3	0.689	0.523
+    4	0.488	0.635
+    5	0.516	0.560
+
+We can see a strong bias in the firs couple bases of the first read.
+This is even more apparent in the image.
+
+![bias-plot](https://gist.githubusercontent.com/brentp/bf7d3c3d3f23cc319ed8/raw/729f26a3d3c3ef87c026f534979deafd8ab26900/bias-example.png "Bias Plot")
+
+This plot will become smoother in the middle with larger datasets.
+
+One can then tabulate the methylation using the Bis-SNP.jar file at $BISSNP
+and taking the bias into account by adjusting the `--trim` argument.
 
 **NOTE**: you will need to run `samtools faidx ref.fa` before this will work as
 Bis-SNP assumes there is an index.
