@@ -15,7 +15,7 @@ def faseq(fa, chrom, start, end, cache=[None]):
     #return seq[start - 1: end]
     return seq[start - 2: end + 1]
 
-def check_bias(bam, reference, n_check=500000, min_map_q=20):
+def check_bias(bam, reference, n_check=2e6, min_map_q=20):
 
     fpath = "%s.bias.png" % os.path.splitext(bam)[0]
     opath = "%s.bias.txt" % os.path.splitext(bam)[0]
@@ -100,10 +100,12 @@ def plot_bias(bias_list, fpath):
     ax1.set_ylabel('mean CG % methylation')
     ax1.set_xlabel('position along read')
     ax1.set_title('Methylation Bias Plot (vertical lines at 4 bases from end)')
+    ax1.grid('off')
 
     f.tight_layout()
     f.savefig(fpath)
 
 if __name__ == "__main__":
 
-    check_bias(sys.argv[1], sys.argv[2])
+    bam, ref = sys.argv[1:3]
+    check_bias(bam, ref)
