@@ -14,7 +14,7 @@ samtools sort $OUT/$method/$name*.bam $OUT/$method-$name;
 samtools index $OUT/$method-$name.bam"
 
 rm -f logs/$method-$name.err logs/$method-$name.out
-echo $cmd  | bsub -J $method-$name -e logs/$method-$name.err -o logs/$method-$name.out -n 2
+echo $cmd  | bsub -J $method-$name -e logs/$method-$name.err -o logs/$method-$name.out -n 2 -R "span[hosts=1]"
 
 mkdir -p $TEMP/trim/
 
@@ -23,4 +23,4 @@ samtools sort $OUT/$method/trim/$name*.bam $OUT/trim/$method-$name;
 samtools index $OUT/trim/$method-$name.bam"
 
 rm -f logs/trim-$method-$name.err logs/trim-$method-$name.out
-echo $cmd | bsub -J trim-$method-$name -e logs/trim-$method-$name.err -o logs/trim-$method-$name.out -n 2
+echo $cmd | bsub -J trim-$method-$name -e logs/trim-$method-$name.err -o logs/trim-$method-$name.out -n 2 -R "span[hosts=1]"

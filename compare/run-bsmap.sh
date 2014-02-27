@@ -5,6 +5,7 @@ cmd="bsmap -u -a $FQ1 -b $FQ2 -d $REF -o results/bsmap-$name.bam -s 12 -v 3 \
 
 rm -f logs/bsmap-$name.err logs/bsmap-$name.out
 echo $cmd | bsub -J bsmap-$name \
+                 -R "span[hosts=1]" \
                  -e logs/bsmap-$name.err \
                  -o logs/bsmap-$name.out -n 8
 
@@ -14,5 +15,6 @@ cmd="bsmap -u -a $TRIM_FQ1 -b $TRIM_FQ2 -d $REF -o results/trim/bsmap-$name.bam 
 
 rm -f logs/trim-bsmap-$name.err logs/trim-bsmap-$name.out
 echo $cmd | bsub -J trim-bsmap-$name \
+                 -R "span[hosts=1]" \
                  -e logs/trim-bsmap-$name.err \
                  -o logs/trim-bsmap-$name.out -n 8

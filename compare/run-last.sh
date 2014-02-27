@@ -15,6 +15,7 @@ samtools sort $OUT/last-$name.fix.bam $OUT/last-$name
 rm $OUT/last-$name.fix.bam
 samtools index $OUT/last-$name.bam
 " | bsub -J last-$name \
+         -R "span[hosts=1]" \
          -e logs/last-$name.err \
          -o logs/last-$name.out -n 8
 
@@ -27,5 +28,6 @@ samtools sort $OUT/trim/last-$name.fix.bam $OUT/trim/last-$name
 rm $OUT/trim/last-$name.fix.bam
 samtools index $OUT/trim/last-$name.bam
 " | bsub -J trim-last-$name \
+         -R "span[hosts=1]" \
          -e logs/trim-last-$name.err \
          -o logs/trim-last-$name.out -n 8
