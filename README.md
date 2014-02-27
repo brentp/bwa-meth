@@ -1,7 +1,7 @@
 bwa-meth
 ========
 
-align BS-Seq reads and tabulate methylation without intermediate temp files.
+Aligns BS-Seq reads and tabulates methylation without intermediate temp files.
 This works for single-end reads and for **paired-end reads from the
 directional protocol** (most common).
 
@@ -21,7 +21,7 @@ parameters for each aligner.
 
 ![Untrimmed reads comparison](https://gist.github.com/brentp/bf7d3c3d3f23cc319ed8/raw/acbd7f47312de480c40a4bf873be5bd33a2ba8da/qual-plot.png "Untrimmed, simulated reads")
 
-Run.sh scripts for each method are here: https://github.com/brentp/bwa-meth/tree/master/compare
+run.sh scripts for each method are here: https://github.com/brentp/bwa-meth/tree/master/compare
 I have done my best to have each method perform optimally, but no doubt there
 could be improvements.
 
