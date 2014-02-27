@@ -108,11 +108,15 @@ The latter looks like this
 
 ![bias-plot](https://gist.githubusercontent.com/brentp/bf7d3c3d3f23cc319ed8/raw/d8c41bacd7b290881b2b34c707c33a61936cd861/bwa-real.bias.png "Bias Plot")
 
+This plot requires that *matplotlib* and *seaborn* are installed. If they
+are not available, then only the text file will be created.
+
 Tabulate
 --------
 
 Currently, `bwa-meth` calls Bis-SNP to call methylation for CpG's and genotypes 
-for SNPs.
+for SNPs. **Note** that we can use the *bias plot* from above to inform our
+trimming. Below, we will trim 3 bases from the ends of the reads.
 
 E.g.:
 
@@ -128,6 +132,3 @@ E.g.:
 This will use BisSNP to perform multi-sample SNP and CpG calling to create
 `out.cpg.vcf` and `out.snp.vcf` as well as a BED file of methylation for
 each input BAM.
-
-The `--trim` removes the first and last 3 bases from reads to avoid bias at
-read ends.
