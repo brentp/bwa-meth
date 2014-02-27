@@ -95,6 +95,19 @@ So the converted reads are streamed directly to bwa and **never written
 to disk**. The output from that is modified by `bwa-meth` and streamed
 straight to a bam file.
 
+Bias
+----
+
+It is well known that methylation estimates from the bases at the ends of reads
+are biased (or just incorrect). We can plot these using, e.g.:
+
+    python bias-plot.py $PREFIX.bam $REF
+
+Which will create the output files $PREFIX.bias.txt and $PREFIX.bias.png
+The latter looks like this
+
+![bias-plot](https://gist.githubusercontent.com/brentp/bf7d3c3d3f23cc319ed8/raw/d8c41bacd7b290881b2b34c707c33a61936cd861/bwa-real.bias.png "Bias Plot")
+
 Tabulate
 --------
 
