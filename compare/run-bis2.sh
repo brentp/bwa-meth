@@ -1,6 +1,5 @@
 . ./common.sh
 
-
 method=bis2
 
 mkdir -p $OUT/$method/trim/

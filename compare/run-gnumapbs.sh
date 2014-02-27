@@ -2,12 +2,8 @@
 
 module load gnumap
 
-#export GNUMAPS=/home/brentp/src/gnumap/gnumaps
-#PATH=$PATH:$GNUMAPS/bin:$GNUMAPS/scripts/
-#export PATH
-# taken from gnumap-bs paper
-REF=/misc2/$REF
-cmd="gnumaps.pl --genome $REF --lib_type wt1 --acc 0.9 --nt_conv bs --num_threads 8 --outdir"
+# args taken from gnumap-bs paper
+cmd="gnumaps.pl --genome $REF --lib_type wt1 --acc 0.9 --nt_conv bs --num_threads 1 --outdir"
 
 zless $FQ1 > $$.r1.tmp
 zless $FQ2 > $$.r2.tmp
