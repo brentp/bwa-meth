@@ -6,7 +6,7 @@ PATH=/opt/mpich2/gnu/bin/:$PATH
 GEN=$(dirname $REF)/
 
 
-cmd="bison --directional --score-min 'L,-0.6,-0.6' -N 1 --very-sensitive-local -p 8 -g $GEN -o"
+cmd="bison --quiet --directional --very-sensitive-local --score-min 'L,-0.6,-0.6' -N 1 -p 2 -g $GEN -o"
 prog=bison
 
 rm -rf results/$prog/
