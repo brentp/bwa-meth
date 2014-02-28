@@ -57,6 +57,9 @@ bsmap:
 bison:
     bison_index $REF
 
+bsmooth:
+    bswc_bowtie2_index.pl --name=bsmooth/mm10 $REF
+
 Align
 =====
 
