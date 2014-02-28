@@ -281,7 +281,11 @@ def as_bam(pfile, fa, prefix, calmd=False, set_as_failed=None):
             continue
 
         aln = handle_read(Bam(toks), set_as_failed)
-        out.write(str(aln) + '\n')
+        try:
+            out.write(str(aln) + '\n')
+        except IOError:
+            sys.stderr.write(p.stderr.read())
+            raise
 
     p.stdin.flush()
     p.stdout.flush()
