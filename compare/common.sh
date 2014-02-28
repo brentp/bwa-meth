@@ -1,6 +1,8 @@
 REF=/data/Schwartz/brentp/mm10/ref/mm10.fa
 BIS_REF=$(dirname $REF)
 
+PICARD=/home/brentp/src/picard/picard-tools-1.98
+BSMOOTH=/home/brentp/src/bsmooth-align/
 
 TEMP=/scratch/brentp/
 
