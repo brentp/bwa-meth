@@ -2,7 +2,8 @@
 
 set -x
 
-perl $BSMOOTH/bin/bswc_bowtie2_index.pl --name=$(dirname $REF)/$(basename $REF .fa) $REF
+# bsmooth won't let you specify abs path...
+perl $BSMOOTH/bin/bswc_bowtie2_index.pl --name=bsmooth/$(basename $REF .fa) $REF
 exit;
 
 mkdir -p results/
@@ -17,7 +18,7 @@ perl $BSMOOTH/bin/bswc_bowtie2_align.pl \
     --out results/$prog-$name/ \
     --stop-after-alignment \
     --bam $BAM \
-    -- /home/brentp/src/bsmooth-align/mm10 -- $REF -- --very-sensitive -p 6 -- $FQ1 -- $FQ2
+    -- bsmooth/$(basename $REF .fa) -- $REF -- --very-sensitive -p 6 -- $FQ1 -- $FQ2
 
 samtools view -h $BAM.crick.bam | python src/bsmooth-adjust-crick.py | samtools view -bS - > $BAM.crick.fix.bam
 java -jar $PICARD/MergeSamFiles.jar I=$BAM.watson.bam I=$BAM.crick.fix.bam O=$BAM AS=false " | bsub -J $prog-$name -e logs/$prog-$name.err -o logs/$prog-$name.out -n 12
