@@ -8,12 +8,7 @@ The base files for the analysis should be in data/
 
 You can get these from (must use browser, not wget)
 
-    https://www.copy.com/s/Kt8wNsWEUBAI/real_R1.fastq.gz
-    https://www.copy.com/s/Arx7DLSQyCm7/real_R2.fastq.gz
-
-    https://copy.com/z9NrR4QZvLk8 # sim_R1
-    https://copy.com/drhajyJlabUD # sim_R1
-
+    https://copy.com/jxoJKLOhWzjz
 
 You can then generate the trimmed versions as:
 
