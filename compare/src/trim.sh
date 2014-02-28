@@ -4,14 +4,10 @@ R1=$1
 R2=$2
 
 
-O1=$(dirname $1)/$(basename $1 .fastq.gz).trim.fastq;
-O2=$(dirname $2)/$(basename $2 .fastq.gz).trim.fastq;
+O1=$(dirname $1)/$(basename $1 .fastq.gz).trim.fastq.gz;
+O2=$(dirname $2)/$(basename $2 .fastq.gz).trim.fastq.gz;
 
-sickle pe -f $R1 -r $R2 \
-          -o $O1 -p $O2 \
-          -s singles.fastq \
-          -t sanger
-gzip -f $O1 &
-gzip -f $O2 &
-rm singles.fastq
-wait
+trim_galore -t --paired --quality 15 $R1 $R2
+
+mv sim_R1_val_1.fq.gz $O1
+mv sim_R2_val_2.fq.gz $O2
