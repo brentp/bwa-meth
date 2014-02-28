@@ -1,11 +1,10 @@
 . ./common.sh
 
-#    -n 1000000 \
 cd data/
 Sherman \
     --genome_folder $BIS_REF \
     --length 100 \
-    -n 100000 \
+    -n 1000000 \
     -pe \
     -X 500 \
     --CG_conversion 25 \
