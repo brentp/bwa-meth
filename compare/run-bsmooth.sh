@@ -10,7 +10,7 @@ set -e
 mkdir -p results/
 prog=bsmooth
 
-BAM=results/$prog-$name.bam
+BAM=results/bsmooth/$prog-$name.bam
 
 rm -f logs/$prog-$name.err logs/$prog-$name.out
 echo "
@@ -25,7 +25,8 @@ perl $BSMOOTH/bin/bswc_bowtie2_align.pl \
 samtools view -h $BAM.crick.bam | python src/bsmooth-adjust-crick.py | samtools view -bS - > $BAM.crick.fix.bam
 java -jar $PICARD/MergeSamFiles.jar I=$BAM.watson.bam I=$BAM.crick.fix.bam O=$BAM AS=false " | bsub -J $prog-$name -e logs/$prog-$name.err -o logs/$prog-$name.out -n 12
 
-BAM=results/trim/$prog-$name.bam
+mkdir -p results/trim/bsmooth/
+BAM=results/trim/bsmooth/$prog-$name.bam
 rm -f logs/trim-$prog-$name.err logs/trim-$prog-$name.out
 echo "
 perl $BSMOOTH/bin/bswc_bowtie2_align.pl \
