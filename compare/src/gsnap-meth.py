@@ -51,6 +51,7 @@ def cmetindexed(ref_dir, ref_base, kmer):
 
 def gsnap_index(reference, kmer=15):
     ref_dir, ref_base = check_reference(reference)
+    ref_base += "." + str(kmer)
 
     cmd = "gmap_build -w 1 -k %(kmer)i -D %(ref_dir)s -d %(ref_base)s %(reference)s"
     cmd %= locals()
@@ -77,12 +78,13 @@ def gsnap_meth(reference, reads, prefix, kmer=15, stranded=False,
         extra_args="", threads=1, rg=None):
 
     ref_dir, ref_base = check_reference(reference)
+    ref_base += "." + str(kmer)
     mode = ["cmet-nonstranded", "cmet-stranded"][int(stranded)]
     reads_str = " ".join(reads)
     if any(r.endswith(".gz") for r in reads):
         extra_args = extra_args + " --gunzip"
     cmd_gsnap = "set -eo pipefail;"
-    cmd_gsnap += "gsnap -B4 --npaths 1 --quiet-if-excessive \
+    cmd_gsnap += "gsnap -B 4 --npaths 1 --quiet-if-excessive \
         --nthreads {threads} \
         -A sam -k {kmer} -D {ref_dir} -d {ref_base} --mode {mode} \
         --read-group-id {rg} --read-group-name {rg} \
