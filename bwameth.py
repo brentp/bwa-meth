@@ -304,7 +304,8 @@ def handle_header(toks, out):
         chrom = chrom[1:]
         toks = ["%s\tSN:%s\t%s" % (sq, chrom, ln)]
     if toks[0].startswith("@PG"):
-        toks = ["@PG\tID:bwa-meth\tPN:bwa-meth\tVN:%s\tCL:%s" % (
+        out.write("\t".join(toks) + "\n")
+        toks = ["@PG\tID:bwa-meth\tPN:bwa-meth\tVN:%s\tCL:\"%s\"" % (
                          __version__,
                          " ".join(x.replace("\t", "\\t") for x in sys.argv))]
     out.write("\t".join(toks) + "\n")
