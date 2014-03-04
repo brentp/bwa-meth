@@ -1,5 +1,6 @@
 *.py[cod]
-
+*/data/*
+*.tmp
 # bio stuff
 *.c2t.*
 *.fai

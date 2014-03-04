@@ -42,7 +42,7 @@ Bowtie:
     bismark_genome_preparation /path/to/reference/files/
 
 GSNAP:
-    python src/gsnap-meth.py index $REF
+    python src/gsnap-meth.py index $REF 15
 
 bwa-meth:
     python ../bwameth.py index $REF
