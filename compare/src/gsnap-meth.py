@@ -53,7 +53,7 @@ def gsnap_index(reference, kmer=15):
     ref_dir, ref_base = check_reference(reference)
     ref_base += "." + str(kmer)
 
-    cmd = "gmap_build -w 1 -k %(kmer)i -D %(ref_dir)s -d %(ref_base)s %(reference)s"
+    cmd = "gmap_build --no-sarray -k %(kmer)i -D %(ref_dir)s -d %(ref_base)s %(reference)s"
     cmd %= locals()
     if not gmap_built(ref_dir, ref_base):
         sh(cmd)
@@ -87,6 +87,7 @@ def gsnap_meth(reference, reads, prefix, kmer=15, stranded=False,
     cmd_gsnap += "gsnap -B 4 --npaths 1 --quiet-if-excessive \
         --nthreads {threads} \
         -A sam -k {kmer} -D {ref_dir} -d {ref_base} --mode {mode} \
+        --pair-expect 300 \
         --read-group-id {rg} --read-group-name {rg} \
          {extra_args}  {reads_str}"
     cmd_gsnap += "| samtools view -bS - | samtools sort - {prefix}"
@@ -118,7 +119,7 @@ def rname(fq1, fq2):
 
 
 def main():
-    if "index" == sys.argv[1]:
+    if len(sys.argv) > 1 and "index" == sys.argv[1]:
         sys.exit(gsnap_index(sys.argv[2], kmer=int(sys.argv[3])))
 
     p = argparse.ArgumentParser(description=__doc__,
