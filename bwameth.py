@@ -423,6 +423,8 @@ def tabulate_main(args):
                          % a.reference)
         sys.exit(1)
     trim = list(map(int, a.trim.split(",")))
+    if not a.prefix.endswith(('/', '.')):
+        a.prefix += "."
 
     cmd = """\
     java -Xmx15g -jar {bissnp}
@@ -431,7 +433,7 @@ def tabulate_main(args):
         -T BisulfiteGenotyper
         --trim_5_end_bp {trim5}
         --trim_3_end_bp {trim3}
-        -vfn1 {prefix}.meth.vcf -vfn2 {prefix}.snp.vcf
+        -vfn1 {prefix}meth.vcf -vfn2 {prefix}snp.vcf
         -mbq 20
         -mmq {mapq} {dbsnp}
         -nt {threads}""".format(
@@ -454,8 +456,8 @@ def tabulate_main(args):
 
     run(cmd)
     fmt = a.format.rstrip('\n') + '\n'
-    sys.stderr.write(a.prefix + ".meth.vcf\n")
-    for i, d in enumerate(reader(a.prefix + ".meth.vcf",
+    sys.stderr.write(a.prefix + "meth.vcf\n")
+    for i, d in enumerate(reader(a.prefix + "meth.vcf",
                        skip_while=lambda toks: toks[0] != "#CHROM",
                        header="ordered")):
         if i == 0:
@@ -487,6 +489,8 @@ def tabulate_main(args):
                 d['pct'] = "%.1f" % (100 * d['cs'] / float(d['cs'] + d['ts']))
             fhs[sample].write(fmt.format(**d))
 
+    with open(a.prefix + "command.sh", 'w') as fh:
+        fh.write(cmd)
 
 def main(args=sys.argv[1:]):
 
