@@ -407,7 +407,13 @@ def tabulate_main(args):
             " Where cs and ts are the counts of C's and T's and pct is the"
             " percent methylation. Available variables in addition to those"
             " are 'end' and 'ctx', where ctx is the  cpg context (CG/CHH/CHG).",
-            default="{chrom}\t{start}\t{start}\t{pct}\t{cs}\t{ts}\t{ctx}")
+            default="{chrom}\t{start}\t{start}\t{pct}\t{cs}\t{ts}")
+    p.add_argument("--context", choices=("all", "CG", "CG-strict"),
+            default="CG-strict", help="which methylation context to output to the"
+            "summary (BED) file. Default 'CG-strict' follows bissnp and only"
+            " pulls those sites that are CG in all samples (no CC samples,"
+            " for example) 'CG' will pull anything that is CG in any sample:"
+            " (MG,SG, YG, CR, CK). 'all' will pull all contexts")
     p.add_argument("bams", nargs="+")
 
     a = p.parse_args(args)
@@ -425,7 +431,7 @@ def tabulate_main(args):
         -T BisulfiteGenotyper
         --trim_5_end_bp {trim5}
         --trim_3_end_bp {trim3}
-        -vfn1 {prefix}.cpg.vcf -vfn2 {prefix}.snp.vcf
+        -vfn1 {prefix}.meth.vcf -vfn2 {prefix}.snp.vcf
         -mbq 20
         -mmq {mapq} {dbsnp}
         -nt {threads}""".format(
@@ -439,18 +445,24 @@ def tabulate_main(args):
             mapq=a.map_q,
             bams=" -I ".join(a.bams)).replace("\n", " \\\n")
     sys.stderr.write(cmd + '\n')
+    if not "--format" in args and a.context == "all":
+        a.format = a.format.rstrip('\n') + "\t{ctx}"
+
+    contexts = {'all': None,
+                'CG-strict': ('CG',),
+                'CG': "CG YG SG MG CR CS CK".split()}[a.context]
 
     run(cmd)
     fmt = a.format.rstrip('\n') + '\n'
-    sys.stderr.write(a.prefix + ".cpg.vcf\n")
-    for i, d in enumerate(reader(a.prefix + ".cpg.vcf",
+    sys.stderr.write(a.prefix + ".meth.vcf\n")
+    for i, d in enumerate(reader(a.prefix + ".meth.vcf",
                        skip_while=lambda toks: toks[0] != "#CHROM",
                        header="ordered")):
         if i == 0:
             samples = list(d.keys())[9:]
             fhs = {}
             for sample in samples:
-                fhs[sample] = open("{prefix}{sample}.cpg.bed"\
+                fhs[sample] = open("{prefix}{sample}.meth.bed"\
                         .format(prefix=a.prefix, sample=sample), "w")
 
                 fhs[sample].write("#" + fmt.replace("}", "").replace("{", ""))
@@ -459,13 +471,16 @@ def tabulate_main(args):
         d['start'], d['end'] = str(int(d['POS']) - 1), d['POS']
         d['chrom'] = d['CHROM']
         for sample in samples:
-            info = dict(zip(d['FORMAT'].split(":"), d[sample].split(":")))
+            sinfo = dict(zip(d['FORMAT'].split(":"), d[sample].split(":")))
             try:
-                d['cs'] = int(info['CM'])  # (M)ethylated
-                d['ts'] = int(info['CU'])  # (U)n
+                d['cs'] = int(sinfo['CM'])  # (M)ethylated
+                d['ts'] = int(sinfo['CU'])  # (U)n
             except ValueError:
                 continue
-            d['ctx'] = info['CP']
+            d['ctx'] = sinfo['CP']
+            if contexts is not None:
+                if not d['ctx'] in contexts: continue
+
             if d['cs'] + d['ts'] == 0:
                 continue
             else:
