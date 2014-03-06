@@ -31,15 +31,12 @@ and David A. Schwartz\,$^1$%
     %http://www.oxfordjournals.org/our_journals/bioinformatics/for_authors/general.html
 
 \section{Summary:}
-Longer sequencing reads, with at least 200 bases per template are now common.
-While traditional aligners have adopted new strategies to improve the mapping of longer reads,
-aligners specific to bisulfite-sequencing were optimized when much shorter reads
-were the norm. We sought to perform a comparison using longer reads to
-determine which aligners were most accurate and efficient and to evaluate a novel
-software tool, \textit{bwa-meth}, built on a traditional mapper that supports
-insertions, deletions and local alignments. We gauge accuracy by comparing
-the number of on and off-target reads from a targeted sequencing project
-and by simulations.
+We sought to perform a comparison using long reads to determine which
+bisulfite-sequence aligners were most accurate and efficient on current
+data and to evaluate a novel software tool, \textit{bwa-meth}, built on
+a traditional mapper that supports insertions, deletions and local
+alignment. We gauge accuracy by comparing the number of on and off-target
+reads from a targeted sequencing project and by simulations.
 
 \section{Availability and Implementation:}
 The benchmarking scripts and the \textit{bwa-meth} software are available at
@@ -51,8 +48,8 @@ Supplemental Information I
 \end{abstract}
 
 \section{Introduction}
-Bisulfite sequencing (BS-Seq) is a common way to explore methylation status.
-As a result, software \citep{frithlast,methylcoder,gsnap,krueger2011,bsmap}
+Bisulfite sequencing (BS-Seq) is a common way to explore DNA methylation status.
+As a result, software \citep{frithlast,methylcoder,gsnap,krueger2011,bsmap,bsmooth}
 have been developed to map sequence reads treated with bisulfite to a reference genome.
 Many of these were developed on and optimized for shorter reads
 than what are common from today's sequencers. Many of these have compared alignment
@@ -141,7 +138,8 @@ of off-target reads. Bismark also has a low percentage of off-target reads.
 Similar comparisons are shown in  Supplemental Figures 2
 for trimmed data and for simulated data in Supplemental Figures 3 and 4.
 \textit{Bwa-meth} does out-perform Last (along with the other aligners)
-for simulated data although GSNAP also performs very well.
+for simulated data although bismark with bowtie2 also performs very well
+after trimming.
 
 \subsection{Computational Resources}
 Within reason, we are more interested in the accuracy of a
@@ -174,17 +172,17 @@ per process.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Conclusion}
-We have shown that BS-Seq aligners built for and optimized with shorter reads
-with global alignments can be out-performed by sending \emph{in silico}
-converted reads to an aligner such as \textit{BWA mem} \citep{bwamem} that supports
-local alignment.
+We have shown that \textit{bwa-meth} is very accurate, even without quality
+trimming. Aligners that use global alignment benefit more from quality trimming
+and also require an additional copy of the \emph{in silico} converted reads.
 We have utilized a new technology that captures CpG-rich regions to compare
 accuracy and speed of \textit{bwa-meth} to existing aligners.
-It demonstrates greater accuracy than other aligners and outputs quality
-scores which can be used to filter which aligments are considered in
-downstream analysis.
+It demonstrates greater accuracy than other aligners, it outputs mapping quality
+scores and outputs an alignment file which is immediately usable by downstream
+tools.
 
 \section*{Acknowledgement}
+We would like to thank Devon Ryan for several helpful conversations.
 
 \paragraph{Funding\textcolon} This was funded by R01 HL097163, R01 HL101251, 1I01BX001534, RC2 HL101715, N01 AI90052, and S10 RR031832.
 
