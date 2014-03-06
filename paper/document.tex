@@ -2,8 +2,6 @@
 \copyrightyear{2005}
 \pubyear{2005}
 
-
-
 \begin{document}
 \firstpage{1}
 
@@ -74,13 +72,16 @@ utilized in any comparison. We hypothesized that having long, paired reads, with
 to 200 bases from the same genomic region, could change the decision on which
 alignment method performed the best. 
 We found limitations to exisiting aligners including the writing of large temporary
-files, high memory-use, long run-time, output that was not suitable for consumption by
-traditional tools, or some combination of these inconveniences. We wrote
+files, required quality-trimming, high memory-use, long run-time, output that was not
+suitable for consumption by traditional tools, or some combination of these
+inconveniences. We wrote
 a BS-Seq aligner based on BWA mem \citep{bwamem} to address these
 limitations. This new aligner, 
 \textit{bwa-meth}, allows indels, local alignments, and it never writes a
 temporary-file of the reads to disk, instead streaming the \emph{in silico} converted
-reads directly to the aligner.
+reads directly to the aligner. In addition, it works well without quality-trimming,
+thereby reducing storage requirements 3-fold by not creating quality-trimmed or
+converted reads.
 
 \section{Approach}
 We introduce a novel approach for determining the accuracy of an aligner;
@@ -93,11 +94,9 @@ to outside of the capture area. While there will be off-target capture, all
 aligners are subject to the same assumptions. With those constraints, we can
 plot a receiver operating curve (ROC) with true positives as reads within
 and false positives as reads outside of the target regions.
-This will be the first comparison of BS-Seq aligners on real data where accuracy
-can be assessed in an unbiased manner.
-\citealp{shrestha} performed a similar analysis on 35 base reads sequenced from
+\citealp{shrestha} performed a similar unbiased analysis on 35 base reads sequenced from
 the X chromosome and gauging a read as accurately mapped if it should be aligned
-to the X chromosome.
+to the X chromosome; here, we map to the entire genome with 100-base paired-end reads.
 
 In addition, we perform simulations with 100-base paired-end reads using
 the software from the authors of Bismark. All data were aligned to mouse
@@ -106,26 +105,12 @@ genome version \textit{mm10}.
 
 \begin{methods}
 \section{Methods}
-We aligned real and simulated data, both trimmed by quality and
-un-trimmed, using the software and versions in Table \ref{Tab:01}.
+We aligned real and simulated data, both trimmed by quality (using Trim Galore
+[\href{http://www.bioinformatics.babraham.ac.uk/projects/trim\_galore/}{http://www.bioinformatics.babraham.ac.uk/projects/trim\_galore/}] default parameters) and un-trimmed, using the software and versions in Supplemental Table 1.
 We evaluated a few parameters for each method and report only the
-best-performing here. We trimmed the data based on quality
-using Trim Galore (\href{http://www.bioinformatics.babraham.ac.uk/projects/trim\_galore/}{http://www.bioinformatics.babraham.ac.uk/projects/trim\_galore/})
-default parameters.
+best-performing here.
 We considered a real read to be in the target region if it
-was within 101 bases of the target area. 
-
-\begin{table}[!t]
-\processtable{Alignment Methods Compared\label{Tab:01}}
-{\begin{tabular}{lll}\toprule
-software & version & command\\\midrule
-bismark & 0.10.1 & bismark --gzip --maxins 1000 -n 3 -l 20 --bam\\
-bsmap & 2.74 & bsmap -s12 -v3 -m0 -x1000 -S42 -n0 -s12 -I1\\
-bwa-meth & 0.06 & bwa-meth\\
-gsnap & 2014-02-28 & gsnap --npaths 1 --quiet-if-excessive\\
-last & 392 & last-bisulfite-paired.sh\\\botrule
-\end{tabular}}{We used a modified version of the calling script for last}
-\end{table}
+was within 1001 bases of the target area. 
 
 \end{methods}
 
@@ -139,13 +124,13 @@ last & 392 & last-bisulfite-paired.sh\\\botrule
 While \textit{bwa-meth} can align single-end reads, it has been optimized for
 paired-end reads from the directional protocol, we show its utility here on real
 and simulated data. Since it consists
-of fewer than 400 lines of code (compared to, e.g. about 8000 for Bismark) and runs
+of fewer than 600 lines of code (compared to, e.g. about 8000 for Bismark) and runs
 quickly, it can be used as a platform to test other optimizations.
 
 \subsection{Accuracy}
-Of the aligners tested, only two report a range of mapping quality
-scores--an indicator of the aligner's confidence in the alignment. For
-those, we vary the score from 1 to the maximum, 255, to draw an ROC-like
+For the aligners that report a range of mapping quality
+scores--an indicator of the aligner's confidence in the alignment--
+we vary the score from 1 to the maximum, 255, to draw an ROC-like
 curve showing the trade-off between sensitivity and specificity. For the
 other aligners, we plot their single location. Figure \ref{fig:01} shows
 the on and off-target reads for our real paired-end data. Last and 
@@ -160,9 +145,10 @@ for simulated data although GSNAP also performs very well.
 
 \subsection{Computational Resources}
 Within reason, we are more interested in the accuracy of a
-method than the speed. In general, the order of aligners from fastest to
-slowest is: Last, \textit{bwa-meth}, Bismark, GSNAP, bsmap. However, Bismark
-is the fastest by a factor of 2 on the simulated data. We report the exact 
+method than the speed. In general the aligners are comparable in terms of
+speed. While Bismark with bowtie1 is quite fast on the simulated data it
+can not use multiple processes and so takes the longest user-time. bsmap
+takes the longest CPU time on the real data. We report the exact 
 timings and maximum memory use in Supplemental Information.
 Bsmap uses the least disk, never writing an index of the reference genome
 and only writing the alignment files. All other aligners write an index of
@@ -171,14 +157,14 @@ reads to disk. This is to aid in parallelization in the case of Last and to
 write the \emph{in silico} converted reads in the case of bismark. While
 these could presumably be addressed in either case, they are considerations
 at the time of writing. It is common to get 10GB of compressed sequence data
-from 10 samples. If an aligner must write copies of the
+from 10 samples. If an aligner must write trimmed and converted copies of the
 sequence data, this increases the storage requirements enough to be a
-consideration in our experience. \textit{Bwa-meth} avoids writing the \emph{in silico}
-converted reads to disk by streaming them directly to the aligner.
+burden in our experience. \textit{Bwa-meth} avoids writing the \emph{in silico}
+converted reads to disk by streaming them directly to the aligner and works
+well without read-trimming.
 None of the programs used an inordinate amount of memory, however, due to
 the parallelization strategy, Last did require about 10GB of shared memory
 per process.
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -187,15 +173,11 @@ per process.
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-
-
-
-
 \section{Conclusion}
 We have shown that BS-Seq aligners built for and optimized with shorter reads
-with end-to-end alignments can be out-performed by sending \emph{in silico}
-converted reads to a modern aligner such as \textit{BWA mem} \citep{bwamem}.
+with global alignments can be out-performed by sending \emph{in silico}
+converted reads to an aligner such as \textit{BWA mem} \citep{bwamem} that supports
+local alignment.
 We have utilized a new technology that captures CpG-rich regions to compare
 accuracy and speed of \textit{bwa-meth} to existing aligners.
 It demonstrates greater accuracy than other aligners and outputs quality
