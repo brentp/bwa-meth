@@ -59,6 +59,10 @@ def count_on_off(bam, flags, pad):
 FLAGS="-F%i" % (0x4 | 0x100 | 0x200)
 def main(bams, reads=None, flags=FLAGS, pad=2002):
     reads = 2 * float(nopen("|bioawk -c fastx 'END { print NR }' %s" % reads).next())
+
+    if any('trim' in b for b in bams):
+        assert all('trim' in b for b in bams), [b for b in bams if not 'trim'
+                in b]
     counts = {}
     colors = cycle('rgbkmy')
     for bam in bams:
