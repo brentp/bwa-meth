@@ -3,6 +3,7 @@
 %\usepackage[utf8x]{inputenc}
 \usepackage{fullpage}
 \usepackage{float}
+\usepackage{booktabs}
 
 \usepackage{listings}
 \usepackage{color}
@@ -34,17 +35,21 @@
 
 \section{Aligners Compared}
 
-\begin{table}[!t]
-\processtable{Alignment Methods Compared\label{Tab:01}}
-{\begin{tabular}{lll}\toprule
+\begin{table}[!htp]
+%\processtable{Alignment Methods Compared\label{Tab:01}}
+{\begin{tabular}{lll}\\\toprule
 software & version & command\\\midrule
 bismark & 0.10.1 & bismark --gzip --maxins 1000 -n 3 -l 20 --bam\\
-bsmap & 2.74 & bsmap -s12 -v3 -m0 -x1000 -S42 -n0 -s12 -I1\\
-bwa-meth & 0.06 & bwa-meth\\
-gsnap & 2014-02-28 & gsnap --npaths 1 --quiet-if-excessive\\
-last & 392 & last-bisulfite-paired.sh\\\botrule
-\end{tabular}}{We used a modified version of the calling script for last}
+bsmap & 2.74 & bsmap -v3 -m0 -x1000 -S42 -n0 -s12 -I1\\
+bsmooth & fb3f7ef & \\
+bwa-meth & 0.09 & bwa-meth\\
+gsnap & 2014-02-28 & gsnap --npaths 1 --quiet-if-excessive -k 15\\
+last & 392 & last-bisulfite-paired.sh\\\bottomrule
+\end{tabular}}
 \end{table}
+We used a modified version of the calling script for last
+
+
 
 
 \section{Comparison On Real Data}
@@ -97,7 +102,7 @@ Supplemental Figure 3 below shows the result for these simulations.
 
 
 \begin{figure}[H]%figure3
-    \centerline{\includegraphics[width=86mm]{supp-2-sim-qual-summary.eps}}
+    \centerline{\includegraphics[width=86mm]{sim-quals.eps}}
     \caption{Percent of paired-end, \emph{simulated} 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner.
 from the paper}\label{suppfig:03}
 \end{figure}
@@ -108,7 +113,7 @@ report the percent of reads aligned relative to the original, un-trimmed number
 since we are interested in the overall mapping rate.
 
 \begin{figure}[H]%figure3
-    \centerline{\includegraphics[width=86mm]{supp-2-sim-trim-qual-summary.eps}}
+    \centerline{\includegraphics[width=86mm]{sim-trim-quals.eps}}
     \caption{Percent of paired-end, \emph{trimmed}, \emph{simulated} 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner.
 from the paper}\label{suppfig:04}
 \end{figure}
