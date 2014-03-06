@@ -402,9 +402,11 @@ def tabulate_main(args):
     p.add_argument("--prefix", help="output prefix", default='bmeth-tab')
     p.add_argument("--trim", help="left, right trim to avoid bias",
                         default="2,2")
-    p.add_argument("--map-q", type=int, default=10, help="only tabulate "
+    p.add_argument("--map-q", type=int, default=25, help="only tabulate "
                    "methylation for reads with at least this mapping quality")
-    p.add_argument("--bissnp", help="path to bissnp jar")
+    p.add_argument("--bissnp", help="path to bissnp jar", required=True)
+    p.add_argument("--region", help="region to call variants, e.g. 'chr1'"
+            "can be used to aid in parallelization")
     p.add_argument("--format", help="format for output summary."
             " default matches bismark begraph output with: %(default)r"
             " Where cs and ts are the counts of C's and T's and pct is the"
@@ -438,10 +440,11 @@ def tabulate_main(args):
         --trim_3_end_bp {trim3}
         -vfn1 {prefix}meth.vcf -vfn2 {prefix}snp.vcf
         -mbq 20
-        -mmq {mapq} {dbsnp}
+        -mmq {mapq} {dbsnp} {region}
         -nt {threads}""".format(
             threads=a.threads,
             dbsnp=("--dbsnp " + a.dbsnp) if a.dbsnp else "",
+            region=("-L " + a.region) if a.region else "",
             bissnp=a.bissnp,
             trim5=trim[0],
             trim3=trim[1],
