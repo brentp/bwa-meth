@@ -3,6 +3,7 @@
 %\usepackage[utf8x]{inputenc}
 \usepackage{fullpage}
 \usepackage{float}
+\usepackage{booktabs}
 
 \usepackage{listings}
 \usepackage{color}
@@ -32,20 +33,66 @@
 
 \maketitle
 
+\section{Advantages}
+\textit{bwa-meth} provides a number of advantages:
+
+1. ease of installation -- requires only python (python2 or python3), bwa,
+   and samtools for the aligner.
+
+2. easy of use -- a single script indexes the fasta, aligns the reads, and
+   tabulates methylation. Default parameters work well.
+
+3. speed -- due to the efficient parallelization by bwa, bwa-meth can run on
+   as many CPU's are available on a single machine.
+
+4. disk-usage -- bwa-meth can take either compressed or uncompressed files
+   and the reads are streamed directly to the aligner, never written to disk. An
+   aligner that requires trimmed reads and that writes the converted reads to
+   disk will require 3X as much storage for just the raw sequence data.
+
+5. useful output -- the BAM that results from bwa-meth is sorted, indexed and
+   contains the proper mapping quality scores, alignment flags, and read-groups.
+   In addition, the header @SQ lines are sorted so that tools like Picard and
+   GATK will accept them as is.
+
+6. simplicity -- we have carefully designed bwa-meth to be quite simple and
+   the code readable so that enhancements are simple. For example, see \#7.
+
+7. strand-specificity -- After we posted bwa-meth on seqanswers, Devon Ryan,
+   the author of Bison, noted that many capture methods target only the reverse
+   strand -- commonly called the original bottom. Though this would be simple to
+   add to any aligner, ours is the only one that currently supports this. See
+   from the supplemental figures the reduction in off-target reads that results
+   from only considering reads that align to the original bottom strand.
+
+8. specificity and sensitivity -- while the difference between aligners in
+   this regard is small, we have shown that bwa-meth consistently peforms as the
+   best or among the best. We believe this to be the case in general and not
+   limited to the specific cases that we have shown.
+
+9. accuracy without trimming -- the accuracy is due in part to bwa's local
+   alignment. This is something that is not supported in bismark and means that
+   we can achieve very good accuracy without performing additional trimming
+   which would result in additional disk-usage and processing time.
+
+
 \section{Aligners Compared}
 
-\begin{table}[!t]
-\processtable{Alignment Methods Compared\label{Tab:01}}
-{\begin{tabular}{lll}\toprule
-software & version & command\\\midrule
-bismark & 0.10.1 & bismark --gzip --maxins 1000 -n 3 -l 20 --bam\\
-bsmap & 2.74 & bsmap -s12 -v3 -m0 -x1000 -S42 -n0 -s12 -I1\\
-bwa-meth & 0.06 & bwa-meth\\
-gsnap & 2014-02-28 & gsnap --npaths 1 --quiet-if-excessive\\
-last & 392 & last-bisulfite-paired.sh\\\botrule
-\end{tabular}}{We used a modified version of the calling script for last}
+\begin{table}[!htp]
+%\processtable{Alignment Methods Compared\label{Tab:01}}
+{\begin{tabular}{lll}\\\toprule
+software & version & arguments\\\midrule
+bismark (bowtie1) & 0.10.1 & --gzip --bam -n 2 -l 24\\
+bismark (bowtie2) & 0.10.1 & --gzip --bam -N 1 --score\_min L,-0.4,-0.5\\ 
+bsmap & 2.74 & bsmap -v3 -m0 -x1000 -S42 -n0 -s12 -I1\\
+bsmooth & fb3f7ef & --very-sensitive\\
+bison & 0.3.0 & --directional --very-sensitive-local -N 1\\
+bwa-meth & 0.09 & bwa-meth\\
+gsnap & 2014-02-28 & --npaths 1 --quiet-if-excessive -k 15\\
+last & 392 & last-bisulfite-paired.sh\\\bottomrule
+\end{tabular}}
 \end{table}
-
+We used a modified version of the calling script for last
 
 \section{Comparison On Real Data}
 
@@ -97,7 +144,7 @@ Supplemental Figure 3 below shows the result for these simulations.
 
 
 \begin{figure}[H]%figure3
-    \centerline{\includegraphics[width=86mm]{supp-2-sim-qual-summary.eps}}
+    \centerline{\includegraphics[width=86mm]{sim-quals.eps}}
     \caption{Percent of paired-end, \emph{simulated} 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner.
 from the paper}\label{suppfig:03}
 \end{figure}
@@ -108,7 +155,7 @@ report the percent of reads aligned relative to the original, un-trimmed number
 since we are interested in the overall mapping rate.
 
 \begin{figure}[H]%figure3
-    \centerline{\includegraphics[width=86mm]{supp-2-sim-trim-qual-summary.eps}}
+    \centerline{\includegraphics[width=86mm]{sim-trim-quals.eps}}
     \caption{Percent of paired-end, \emph{trimmed}, \emph{simulated} 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner.
 from the paper}\label{suppfig:04}
 \end{figure}
@@ -155,49 +202,6 @@ The java .jar file is available from: http://sourceforge.net/projects/bissnp/fil
 For CNV detection from BS-Seq data, the R package \emph{cn.mops} \cite{cnmops} is required.
 It is available
 from bioconductor \cite{bioconductor} at: http://bioconductor.org/packages/devel/bioc/html/cn.mops.html
-
-\section{Advantages}
-\textit{bwa-meth} provides a number of advantages:
-
-1. ease of installation -- requires only python (python2 or python3), bwa,
-   and samtools for the aligner.
-
-2. easy of use -- a single script indexes the fasta, aligns the reads, and
-   tabulates methylation. Default parameters work well.
-
-3. speed -- due to the efficient parallelization by bwa, bwa-meth can run on
-   as many CPU's are available on a single machine.
-
-4. disk-usage -- bwa-meth can take either compressed or uncompressed files
-   and the reads are streamed directly to the aligner, never written to disk. An
-   aligner that requires trimmed reads and that writes the converted reads to
-   disk will require 3X as much storage for just the raw sequence data.
-
-5. useful output -- the BAM that results from bwa-meth is sorted, indexed and
-   contains the proper mapping quality scores, alignment flags, and read-groups.
-   In addition, the header @SQ lines are sorted so that tools like Picard and
-   GATK will accept them as is.
-
-6. simplicity -- we have carefully designed bwa-meth to be quite simple and
-   the code readable so that enhancements are simple. For example, see \#7.
-
-7. strand-specificity -- After we posted bwa-meth on seqanswers, Devon Ryan,
-   the author of Bison, noted that many capture methods target only the reverse
-   strand -- commonly called the original bottom. Though this would be simple to
-   add to any aligner, ours is the only one that currently supports this. See
-   from the supplemental figures the reduction in off-target reads that results
-   from only considering reads that align to the original bottom strand.
-
-8. specificity and sensitivity -- while the difference between aligners in
-   this regard is small, we have shown that bwa-meth consistently peforms as the
-   best or among the best. We believe this to be the case in general and not
-   limited to the specific cases that we have shown.
-
-9. accuracy without trimming -- the accuracy is due in part to bwa's local
-   alignment. This is something that is not supported in bismark and means that
-   we can achieve very good accuracy without performing additional trimming
-   which would result in additional disk-usage and processing time.
-
 \section{Additional Features}
 \textit{Bwa-meth} and GSNAP are the only program that outputs a BAM file that passes picard's ValidateSam without errors.
 Last does not report the proper pair information in all cases and none of the other aligners add a read-group.
