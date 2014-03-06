@@ -65,7 +65,7 @@ def main(bams, reads=None, flags=FLAGS, pad=2002):
         counts[bam] = count_on_off(bam, flags, pad)
 
         symbol = 'o' if len(set(counts[bam][0])) < 3 else '.'
-        pl.plot(counts[bam][0][1:] / float(reads), counts[bam][1][1:] / float(reads),
+        pl.plot(np.log10(1 + counts[bam][0][1:] / float(reads)), counts[bam][1][1:] / float(reads),
                 '%s%s' % (colors.next(), symbol), label=name(bam))
 
     pl.xlabel('off target')
