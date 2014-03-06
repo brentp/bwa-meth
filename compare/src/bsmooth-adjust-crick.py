@@ -14,6 +14,6 @@ for line in sys.stdin:
     toks = line.rstrip().split("\t")
     chrom = toks[2]
     pos = int(toks[3])
-    pos = seq_lens[chrom] - pos + 1
+    pos = seq_lens[chrom] - pos - len(toks[9])
     toks[3] = str(pos)
     print "\t".join(toks)

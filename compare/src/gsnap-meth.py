@@ -87,7 +87,9 @@ def gsnap_meth(reference, reads, prefix, kmer=15, stranded=False,
     cmd_gsnap += "gsnap -B 4 --npaths 1 --quiet-if-excessive \
         --nthreads {threads} \
         -A sam -k {kmer} -D {ref_dir} -d {ref_base} --mode {mode} \
-        --pair-expect 300 \
+        --use-sarray 0 \
+        --pairexpect 300 \
+        --pairdev 250 \
         --read-group-id {rg} --read-group-name {rg} \
          {extra_args}  {reads_str}"
     cmd_gsnap += "| samtools view -bS - | samtools sort - {prefix}"

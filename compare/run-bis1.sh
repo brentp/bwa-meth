@@ -1,6 +1,6 @@
 . ./common.sh
 
-REF=/data/Schwartz/brentp/mm10/ref/ # bowtie2
+
 REF=/data/Schwartz/brentp/mm10/ # bowtie
 
 method=bis1

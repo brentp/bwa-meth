@@ -7,7 +7,7 @@ BSMOOTH=/home/brentp/src/bsmooth-align/
 TEMP=/scratch/brentp/
 
 module load bsmap
-module load bison/0.2.4
+module load bison/0.3.0
 
 PATH=$PATH:~/src/sherman/
 

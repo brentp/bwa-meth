@@ -1,21 +1,17 @@
 . ./common.sh
 
-
 PATH=/opt/mpich2/gnu/bin/:$PATH
 
 GEN=$(dirname $REF)/
 
-
-cmd="bison --quiet --directional --local --score-min L,-0.6,-0.6 -N 1 -p 2 -g $GEN -o"
-cmd="bison --quiet --directional --very-sensitive-local -N 1 -p 2 -g $GEN -o"
+cmd="bison --quiet --directional --very-sensitive-local -N 1 -p 6 -g $GEN -o"
 prog=bison
 
-rm -rf results/$prog/
-mkdir -p results/$prog/
+rm -rf results/$prog-$name/
+mkdir -p results/$prog-$name/
 rm -f logs/$prog-$name.err logs/$prog-$name.out
 
-#mv="mv results/$prog/${name}_R1.bam results/$prog-$name.bam"
-echo "mpiexec -np 3 $cmd results/$prog/ -1 $FQ1 -2 $FQ2" \
+echo "mpiexec -np 3 $cmd results/$prog-$name/ -1 $FQ1 -2 $FQ2" \
         | bsub -J $prog$name \
                -R "span[ptile=1]" \
                -a mvapich \
@@ -24,15 +20,11 @@ echo "mpiexec -np 3 $cmd results/$prog/ -1 $FQ1 -2 $FQ2" \
                -o logs/$prog-$name.out \
                -n 3
 
-#echo $mv | bsub -w "done('$prog$name')" -e /dev/null -o /dev/null -J mv
-
-
-rm -rf results/trim/$prog/
-mkdir -p results/trim/$prog/
+rm -rf results/trim/$prog-$name/
+mkdir -p results/trim/$prog-$name/
 rm -f logs/trim-$prog-$name.err logs/trim-$prog-$name.out
 
-mv="mv results/trim/$prog/${name}_R1.bam results/trim/$prog-$name.bam"
-echo "mpiexec -np 3 $cmd results/trim/$prog/ -1 $TRIM_FQ1 -2 $TRIM_FQ2" \
+echo "mpiexec -np 3 $cmd results/trim/$prog-$name/ -1 $TRIM_FQ1 -2 $TRIM_FQ2" \
         | bsub -J trim-$prog-$name \
                -R "span[ptile=1]" \
                -a mvapich \

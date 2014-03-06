@@ -13,11 +13,11 @@ prog=bsmooth
 BAM=results/bsmooth/$prog-$name.bam
 
 rm -f logs/$prog-$name.err logs/$prog-$name.out
+mkdir -p results/$prog/$name/ 
 echo "
 perl $BSMOOTH/bin/bswc_bowtie2_align.pl \
-    --metrics results/bsmooth.metrics.txt \
-    --out results/$prog-$name/ \
-    --stop-after-alignment \
+    --metrics results/$prog/$name-metrics.txt \
+    --out results/$prog/$name/ \
     --bam $BAM \
     -- bsmooth/$(basename $REF .fa) -- $REF \
     -- --very-sensitive -p 6 -- $FQ1 -- $FQ2
@@ -28,11 +28,11 @@ java -jar $PICARD/MergeSamFiles.jar I=$BAM.watson.bam I=$BAM.crick.fix.bam O=$BA
 mkdir -p results/trim/bsmooth/
 BAM=results/trim/bsmooth/$prog-$name.bam
 rm -f logs/trim-$prog-$name.err logs/trim-$prog-$name.out
+mkdir -p results/trim/$prog/$name/ 
 echo "
 perl $BSMOOTH/bin/bswc_bowtie2_align.pl \
-    --metrics results/bsmooth.metrics.txt \
-    --out results/trim/$prog-$name/ \
-    --stop-after-alignment \
+    --metrics results/trim/bsmooth/metrics.txt \
+    --out results/trim/$prog/$name/ \
     --bam $BAM \
     -- bsmooth/$(basename $REF .fa) -- $REF \
     -- --very-sensitive -p 6 -- $TRIM_FQ1 -- $TRIM_FQ2
