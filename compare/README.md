@@ -78,10 +78,19 @@ For simulated reads:
         --reads data/sim_R1.fastq.gz \ # this is to get the number of input reads
         results/*-sim.bam > sim-trim-qual-summ.txt
 
+Used:
+
+    $ python src/sim-roc.py --reads data/sim_R1.fastq.gz results/trim/bwa-sim.bam results/trim/bison-sim/sim_R1.trim.bam  results/trim/bsmap-sim.bam results/trim/gsnap-sim.bam results/trim/bis2-sim.bam results/trim/bsmooth/bsmooth-sim.bam results/trim/bis1-sim.bam results/trim/last-sim.bam > sim-trim-quals.txt
+
+And:
+
+   $ python src/sim-roc.py --reads data/sim_R1.fastq.gz results/bwa-sim.bam results/bison-sim/sim_R1.bam  results/bsmap-sim.bam results/gsnap-sim.bam results/bis2-sim.bam results/bsmooth/bsmooth-sim.bam results/bis1-sim.bam results/last-sim.bam > sim-quals.txt
+
 This will make a plot with matplotlib that's not very pretty. One can then create
 a nice ggplot, plot with:
 
-    Rscript src/plot-quals.R sim-trim-qual-summ.txt sim-trim-qual-summ.png
+    Rscript src/plot-quals.R sim-trim-quals.txt sim-trim-quals.png
+    Rscript src/plot-quals.R sim-quals.txt sim-quals.png
 
 And the output will appear in the png (or .pdf or .eps) specified as the 2nd arg.
     
