@@ -141,11 +141,61 @@ For CNV detection from BS-Seq data, the R package \emph{cn.mops} \cite{cnmops} i
 It is available
 from bioconductor \cite{bioconductor} at: http://bioconductor.org/packages/devel/bioc/html/cn.mops.html
 
+\section{Advantages}
+\textit{bwa-meth} provides a number of advantages:
+
+1. ease of installation -- requires only python (python2 or python3), bwa,
+   and samtools for the aligner.
+
+2. easy of use -- a single script indexes the fasta, aligns the reads, and
+   tabulates methylation. Default parameters work well.
+
+3. speed -- due to the efficient parallelization by bwa, bwa-meth can run on
+   as many CPU's are available on a single machine.
+
+4. disk-usage -- bwa-meth can take either compressed or uncompressed files
+   and the reads are streamed directly to the aligner, never written to disk. An
+   aligner that requires trimmed reads and that writes the converted reads to
+   disk will require 3X as much storage for just the raw sequence data.
+
+5. useful output -- the BAM that results from bwa-meth is sorted, indexed and
+   contains the proper mapping quality scores, alignment flags, and read-groups.
+   In addition, the header @SQ lines are sorted so that tools like Picard and
+   GATK will accept them as is.
+
+6. simplicity -- we have carefully designed bwa-meth to be quite simple and
+   the code readable so that enhancements are simple. For example, see \#7.
+
+7. strand-specificity -- After we posted bwa-meth on seqanswers, Devon Ryan,
+   the author of Bison, noted that many capture methods target only the reverse
+   strand -- commonly called the original bottom. Though this would be simple to
+   add to any aligner, ours is the only one that currently supports this. See
+   from the supplemental figures the reduction in off-target reads that results
+   from only considering reads that align to the original bottom strand.
+
+8. specificity and sensitivity -- while the difference between aligners in
+   this regard is small, we have shown that bwa-meth consistently peforms as the
+   best or among the best. We believe this to be the case in general and not
+   limited to the specific cases that we have shown.
+
+9. accuracy without trimming -- the accuracy is due in part to bwa's local
+   alignment. This is something that is not supported in bismark and means that
+   we can achieve very good accuracy without performing additional trimming
+   which would result in additional disk-usage and processing time.
+
 \section{Additional Features}
 \textit{Bwa-meth} and GSNAP are the only program that outputs a BAM file that passes picard's ValidateSam without errors.
 Last does not report the proper pair information in all cases and none of the other aligners add a read-group.
 For the comparison, we added sorting and forced SAM output by the other aligners regardless of their default.
 \textit{Bwa-meth} outputs a read-group for each sample by default and allows that to be customized.
+
+\textit{bwa-meth} can calculate bias of methylation estimates by location in the read:
+
+\begin{lstlisting}[language=bash]
+python bias-plot.py input.bam ref.fa
+\end{lstlisting}
+This will create a bias-plot showing bases in the reads that should not be considered
+for methylation calls.
 
 \textit{Bwa-meth} defers tabulation of the methylation scores to Bis-SNP \cite{bissnp} by offering a simplified interface:
 \begin{lstlisting}[language=bash]
@@ -154,7 +204,6 @@ bwa-meth tabulate \
     --map-q 30 \
     --bissnp BisSNP-0.82.2.jar \
      --reference /path/to/ref.fasta \
-     --prefix out \
      input.bam
 \end{lstlisting}
 Where the arguments are sent to Bis-SNP to, for example trim the first and last 3 bases
