@@ -38,7 +38,7 @@ def parse_trim(log_file):
     return ["no", "yes"][int("trim" in log_file)]
 
 
-FMT = "{trimmed}\t{program}\t{time}(min)\t{mem}(GB)\t{dataset}"
+FMT = "{trimmed} &    {program} & {time}(min) & {mem}(GB) & {dataset} \\\\"
 
 def main(logs):
     fmt = FMT
