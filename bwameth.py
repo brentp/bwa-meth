@@ -63,38 +63,40 @@ def fasta_iter(fasta_name):
         header = next(header)[1:].strip()
         yield header, "".join(s.strip() for s in next(faiter)).upper()
 
-def convert_reads(fq1, fq2, out=sys.stdout):
-    sys.stderr.write("converting reads in %s,%s\n" % (fq1, fq2))
-    fq1 = nopen(fq1)
-    if fq2 != "NA":
-        fq2 = nopen(fq2)
-        q2_iter = izip(*[fq2] * 4)
-    else:
-        sys.stderr.write("WARNING: running bwameth in single-end mode\n")
-        q2_iter = repeat((None, None, None, None))
-    q1_iter = izip(*[fq1] * 4)
+def convert_reads(fq1s, fq2s, out=sys.stdout):
 
-    lt80 = 0
-    for pair in izip(q1_iter, q2_iter):
-        for read_i, (name, seq, _, qual) in enumerate(pair):
-            if name is None: continue
-            name = name.rstrip("\r\n").split(" ")[0]
-            if name.endswith(("_R1", "_R2")):
-                name = name[:-3]
-            elif name.endswith(("/1", "/2")):
-                name = name[:-2]
+    for fq1, fq2 in zip(fq1s.split(","), fq2s.split(",")):
+        sys.stderr.write("converting reads in %s,%s\n" % (fq1, fq2))
+        fq1 = nopen(fq1)
+        if fq2 != "NA":
+            fq2 = nopen(fq2)
+            q2_iter = izip(*[fq2] * 4)
+        else:
+            sys.stderr.write("WARNING: running bwameth in single-end mode\n")
+            q2_iter = repeat((None, None, None, None))
+        q1_iter = izip(*[fq1] * 4)
 
-            seq = seq.upper().rstrip('\n')
-            if len(seq) < 80:
-                lt80 += 1
+        lt80 = 0
+        for pair in izip(q1_iter, q2_iter):
+            for read_i, (name, seq, _, qual) in enumerate(pair):
+                if name is None: continue
+                name = name.rstrip("\r\n").split(" ")[0]
+                if name.endswith(("_R1", "_R2")):
+                    name = name[:-3]
+                elif name.endswith(("/1", "/2")):
+                    name = name[:-2]
 
-            char_a, char_b = ['CT', 'GA'][read_i]
-            # keep original sequence as name.
-            name = " ".join((name,
-                            "YS:Z:" + seq +
-                            "\tYC:Z:" + char_a + char_b + '\n'))
-            seq = seq.replace(char_a, char_b)
-            out.write("".join((name, seq, "\n+\n", qual)))
+                seq = seq.upper().rstrip('\n')
+                if len(seq) < 80:
+                    lt80 += 1
+
+                char_a, char_b = ['CT', 'GA'][read_i]
+                # keep original sequence as name.
+                name = " ".join((name,
+                                "YS:Z:" + seq +
+                                "\tYC:Z:" + char_a + char_b + '\n'))
+                seq = seq.replace(char_a, char_b)
+                out.write("".join((name, seq, "\n+\n", qual)))
 
     out.flush()
     out.close()
@@ -222,6 +224,7 @@ class Bam(object):
 
 
 def rname(fq1, fq2=""):
+    fq1, fq2 = fq1.split(",")[0], fq2.split(",")[0]
     def name(f):
         n = op.basename(op.splitext(f)[0])
         if n.endswith('.fastq'): n = n[:-6]
@@ -304,7 +307,7 @@ def handle_header(toks, out):
         chrom = chrom[1:]
         toks = ["%s\tSN:%s\t%s" % (sq, chrom, ln)]
     if toks[0].startswith("@PG"):
-        out.write("\t".join(toks) + "\n")
+        #out.write("\t".join(toks) + "\n")
         toks = ["@PG\tID:bwa-meth\tPN:bwa-meth\tVN:%s\tCL:\"%s\"" % (
                          __version__,
                          " ".join(x.replace("\t", "\\t") for x in sys.argv))]
@@ -522,13 +525,16 @@ def main(args=sys.argv[1:]):
             " as failed those aligning to the forward, or original top (OT).",
         default=None, choices=('f', 'r'))
 
-    p.add_argument("fastqs", nargs="+", help="bs-seq fastqs to align")
+    p.add_argument("fastqs", nargs="+", help="bs-seq fastqs to align. Run"
+            "multiple sets separated by commas, e.g. ... a_R1.fastq,b_R1.fastq"
+            " a_R2.fastq,b_R2.fastq note that the order must be maintained.")
 
     args = p.parse_args(args)
     # for the 2nd file. use G => A and bwa's support for streaming.
     script = __file__
     conv_fqs = "'<%s %s c2t %s %s'" % (sys.executable, script, args.fastqs[0],
-               args.fastqs[1] if len(args.fastqs) > 1 else 'NA')
+               args.fastqs[1] if len(args.fastqs) > 1
+                              else ','.join(['NA'] * len(args.fastqs[0].split(","))))
 
     bwa_mem(args.reference, conv_fqs, "", prefix=args.prefix,
              threads=args.threads, rg=args.read_group or
