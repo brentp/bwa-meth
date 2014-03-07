@@ -92,28 +92,27 @@ gsnap & 2014-02-28 & --npaths 1 --quiet-if-excessive -k 15\\
 last & 392 & last-bisulfite-paired.sh\\\bottomrule
 \end{tabular}}
 \end{table}
-We used a modified version of the calling script for last
+We used a modified version of the calling script for last available in the
+github repository.
 
 \section{Comparison On Real Data}
 
-We compared 5 aligners on real data as described in the text. Supplemental
+We compared 7 aligners on real data as described in the text. Supplemental
 Figure 1 below shows a color version of Figure 1 from the main text.
 
 \begin{figure}[H]%supplemental figure1
     \centerline{\includegraphics[width=86mm]{supp-1-real-qual-summary.eps}}
-    \caption{Percent of paired-end, 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner. This is a color version of figure 1
-from the paper}\label{suppfig:01}
+    \caption{Percent of paired-end, 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner. This is a color version of figure 1 from the paper}\label{suppfig:01}
 \end{figure}
 
-When we trim the reads with \emph{Sickle} before aligning, the result is shown below in Supplemental Figure 2. We report the percent of reads aligned relative
+When we trim the reads with \emph{trim_galore} before aligning, the result is shown below in Supplemental Figure 2. We report the percent of reads aligned relative
 to the original count in the untrimmed data because we are interested in the
 overall mapping rate.
 
 %\begin{figure}[!htpb]%figure1
 \begin{figure}[H]%figure1
     \centerline{\includegraphics[width=86mm]{supp-1-real-trim-qual-summary.eps}}
-    \caption{Percent of paired-end, \emph{trimmed} 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner.
-from the paper}\label{suppfig:02}
+    \caption{Percent of paired-end, \emph{trimmed} 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner.}\label{suppfig:02}
 \end{figure}
 
 \subsection{Resources}
@@ -222,11 +221,8 @@ as failed.
 
 
 \section{Mapping and Trimming}
-We note that while trimming seems to improve accuracy for simulated data,
-it does not improve anything for real data. This could be because
-the reads from the targetted protocol are likely to come from CpG-rich regions
-with simple sequence and trimming them increases the possiblity for mis-maps
-and reduces the likelihood of a unique mapping.
+We note that rimming improves accuracy for most aligners but the
+difference is very small for \texit{bwa-meth}.
 
 \section{\textit{bwa-meth} Installation And Requirements}
 
