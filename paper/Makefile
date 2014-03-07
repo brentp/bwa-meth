@@ -13,7 +13,7 @@ clean:
 	rm -f document.aux document.pdf document.log document.bbl
 
 supp: supplement.tex *.eps
-	rm -f supplement.pdf supplement.aux
+	rm -f supplement.pdf supplement.aux *-converted-to.pdf
 	pdflatex supplement.tex
 	bibtex supplement.aux
 	pdflatex supplement
