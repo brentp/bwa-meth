@@ -191,6 +191,35 @@ yes &    last & 109.39 & 25.90 & sim \\
     \end{tabular}
 \end{table}
 
+\subsection{Improved Accuracy for Stranded Capture Experiments}
+
+Below we show a reduction in the percent of off-target reads by
+considering only the strand targetted by our capture protocol.
+
+\begin{figure}[H]%figure5
+    \centerline{\includegraphics[width=86mm]{real-bwa-strand.eps}}
+    \caption{For a capture experiment that targets only one strand, we can
+    improve accuracy by considering only reads that map to that strand.
+    Here, we show the effect from the original bwameth alignments as shown
+    in Figure 1 compared to the alignments restricted to the strand targeted
+    by the capture method.}\label{suppfig:05}
+\end{figure}
+
+This is implemented in \textit{bwa-meth} view the \emph{--set-as-failed}
+flag so that reads mapping to a given strand are given the SAM flag
+indicating that they failed vendor quality control checks. Invocation
+would look like this:
+
+\begin{lstlisting}[language=bash]
+bwameth.py \
+    --reference $REF \
+    --set-as-failed f \
+    $READS_R1 $READS_R2
+
+\end{lstlisting}
+to set reads mapping to the forward, or original top strand
+as failed.
+
 
 \section{Mapping and Trimming}
 We note that while trimming seems to improve accuracy for simulated data,
@@ -228,7 +257,7 @@ for methylation calls.
 
 \textit{Bwa-meth} defers tabulation of the methylation scores to Bis-SNP \cite{bissnp} by offering a simplified interface:
 \begin{lstlisting}[language=bash]
-bwa-meth tabulate \
+bwameth.py tabulate \
     --trim 3,3 \
     --map-q 30 \
     --bissnp BisSNP-0.82.2.jar \
