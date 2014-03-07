@@ -105,13 +105,13 @@ Figure 1 below shows a color version of Figure 1 from the main text.
     \caption{Percent of paired-end, 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner. This is a color version of figure 1 from the paper}\label{suppfig:01}
 \end{figure}
 
-When we trim the reads with \emph{trim_galore} before aligning, the result is shown below in Supplemental Figure 2. We report the percent of reads aligned relative
+When we trim the reads with \emph{trim\_galore} before aligning, the result is shown below in Supplemental Figure 2. We report the percent of reads aligned relative
 to the original count in the untrimmed data because we are interested in the
 overall mapping rate.
 
-%\begin{figure}[!htpb]%figure1
-\begin{figure}[H]%figure1
-    \centerline{\includegraphics[width=86mm]{supp-1-real-trim-qual-summary.eps}}
+%\begin{figure}[!htpb]%figure2
+\begin{figure}[H]%figure2
+    \centerline{\includegraphics[width=86mm]{real-trim-quals.eps}}
     \caption{Percent of paired-end, \emph{trimmed} 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner.}\label{suppfig:02}
 \end{figure}
 
@@ -123,16 +123,26 @@ overall mapping rate.
     \caption{Resources on real data}
     \begin{tabular}{lllll} \hline
     trimmed & program & time(min) & mem(GB) & dataset \\ \hline
-    no      & bis1    & 573.18    & 8.30    & real    \\
-    no      & bsmap   & 7994.27   & 23.11   & real    \\
-    no      & bwa     & 356.04    & 15.44   & real    \\
-    no      & gsnap   & 3393.78   & 10.98   & real    \\
-    no      & last    & 621.75    & 34.53   & real    \\
-    yes     & bis1    & 584.45    & 8.28    & real    \\
-    yes     & bsmap   & 4941.04   & 23.29   & real    \\
-    yes     & bwa     & 341.75    & 16.75   & real    \\
-    yes     & gsnap   & 2779.10   & 12.12   & real    \\
-    yes     & last    & 536.70    & 34.53   & real    \\
+
+no &    bis1 & 576.98 & 8.30 & real \\
+no &    bis2 & 2095.78 & 9.87 & real \\
+no &    bison & 1647.23 & 10.37 & real \\
+no &    bsmap & 8704.41 & 22.70 & real \\
+no &    bsmooth & 5207.10 & 9.90 & real \\
+no &    bwa & 335.35 & 14.90 & real \\
+no &    gsnap & 5288.03 & 13.04 & real \\
+no &    last & 612.08 & 34.53 & real \\
+
+yes &    bis1 & 581.37 & 8.28 & real \\
+yes &    bis2 & 1901.68 & 9.64 & real \\
+yes &    bison & 1442.46 & 10.06 & real \\
+yes &    bsmap & 6915.10 & 23.29 & real \\
+yes &    bsmooth & 4959.62 & 9.45 & real \\
+yes &    bwa & 301.71 & 14.03 & real \\
+yes &    gsnap & 4372.86 & 13.43 & real \\
+yes &    last & 559.04 & 34.53 & real \\
+
+
     \end{tabular}
 \end{table}
 
@@ -222,7 +232,7 @@ as failed.
 
 \section{Mapping and Trimming}
 We note that rimming improves accuracy for most aligners but the
-difference is very small for \texit{bwa-meth}.
+difference is very small for \textit{bwa-meth}.
 
 \section{\textit{bwa-meth} Installation And Requirements}
 
