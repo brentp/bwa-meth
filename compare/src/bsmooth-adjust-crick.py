@@ -13,7 +13,9 @@ for line in sys.stdin:
         continue
     toks = line.rstrip().split("\t")
     chrom = toks[2]
-    pos = int(toks[3])
-    pos = seq_lens[chrom] - pos - len(toks[9])
-    toks[3] = str(pos)
+    flag = int(toks[1])
+    if chrom != "*" and not flag & 0x4:
+        pos = int(toks[3])
+        pos = max(1, seq_lens[chrom] - pos - len(toks[9]))
+        toks[3] = str(pos)
     print "\t".join(toks)
