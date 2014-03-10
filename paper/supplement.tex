@@ -98,11 +98,13 @@ github repository.
 \section{Comparison On Real Data}
 
 We compared 7 aligners on real data as described in the text. Supplemental
-Figure 1 below shows a color version of Figure 1 from the main text.
+Figure 1 below shows the same data as Figure 1 from the main text.
 
 \begin{figure}[H]%supplemental figure1
-    \centerline{\includegraphics[width=86mm]{real-quals.eps}}
-    \caption{Percent of paired-end, 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner. This is a color version of figure 1 from the paper}\label{suppfig:01}
+    \centerline{\includegraphics[width=125mm]{real-quals.eps}}
+    \caption{Percent of paired-end, 100-base reads on (y) and off (x) target for
+    the tested aligners. Aligners that report mapping quality are shown as lines
+that span each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner. This is a color version of figure 1 from the paper}\label{suppfig:01}
 \end{figure}
 
 When we trim the reads with \emph{trim\_galore} before aligning, the result is shown below in Supplemental Figure 2. We report the percent of reads aligned relative
@@ -111,7 +113,7 @@ overall mapping rate.
 
 %\begin{figure}[!htpb]%figure2
 \begin{figure}[H]%figure2
-    \centerline{\includegraphics[width=86mm]{real-trim-quals.eps}}
+    \centerline{\includegraphics[width=125mm]{real-trim-quals.eps}}
     \caption{Percent of paired-end, \emph{trimmed} 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner.}\label{suppfig:02}
 \end{figure}
 
@@ -153,7 +155,7 @@ Supplemental Figure 3 below shows the result for these simulations.
 
 
 \begin{figure}[H]%figure3
-    \centerline{\includegraphics[width=86mm]{sim-quals.eps}}
+    \centerline{\includegraphics[width=125mm]{sim-quals.eps}}
     \caption{Percent of paired-end, \emph{simulated} 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner.
 }\label{suppfig:03}
 \end{figure}
@@ -164,7 +166,7 @@ report the percent of reads aligned relative to the original, un-trimmed number
 since we are interested in the overall mapping rate.
 
 \begin{figure}[H]%figure3
-    \centerline{\includegraphics[width=86mm]{sim-trim-quals.eps}}
+    \centerline{\includegraphics[width=125mm]{sim-trim-quals.eps}}
     \caption{Percent of paired-end, \emph{trimmed}, \emph{simulated} 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner.
 }\label{suppfig:04}
 \end{figure}

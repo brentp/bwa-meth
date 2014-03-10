@@ -49,10 +49,9 @@ Supplemental Information I
 
 \section{Introduction}
 Bisulfite sequencing (BS-Seq) is a common way to explore DNA methylation status.
-As a result, software \citep{frithlast,methylcoder,gsnap,krueger2011,bsmap,bsmooth}
-have been developed to map sequence reads treated with bisulfite to a reference genome.
-Many of these rely on global alignment which performs best when the reads are quality-trimmed
-before use. Previous studies have compared alignment statistics on 
+As a result, software 
+has been developed to map sequence reads treated with bisulfite to a reference genome \citep{frithlast,methylcoder,gsnap,krueger2011,bsmap,bsmooth}.
+Previous studies have compared alignment statistics on 
 real \citep{methylcoder,bsmap,shrestha} and simulated \citep{frithlast} reads,
 however most of these are limited by knowledge of the ground-truth and assumptions of
 the simulation, respectively.
@@ -67,7 +66,8 @@ The comparison is performed on 100-base paired-end reads
 which are of modest length by current standards, but, to our knowledge, longer than
 utilized in any comparison. We hypothesized that long, paired reads, with up
 to 200 bases from the same genomic region, could change the decision on which
-alignment method performed the best. 
+alignment method performed the best and that aligners which relied on global
+alignment might have reduced performance on longer reads.
 We found limitations to exisiting aligners including the writing of large temporary
 files, required quality-trimming, high memory-use, long run-time, output that was not
 suitable for consumption by traditional tools, or some combination of these
@@ -82,21 +82,21 @@ quality-trimming, thereby reducing storage requirements 3-fold by not creating
 quality-trimmed or converted reads.
 
 \section{Approach}
-We introduce a novel approach for determining the accuracy of an aligner;
+In order to determine the accuracy of an aligner,
 we utilize a dataset from Agilent's SureSelect Mouse Methyl-Seq kit which
 captures about
-99 million bases from high CpG-density regions in the mouse genome (a similar
+99 million bases from CpG dense regions in the mouse genome (a similar
 approach is available for human regions).
-We gauge an aligner by the number of reads in the capture area as compared
+We evaulate an aligner by the number of reads in the capture area as compared
 to outside of the capture area. While there will be off-target capture, all
 aligners are subject to the same assumptions. With those constraints, we can
 plot a receiver operating curve (ROC) with true positives as reads within
 and false positives as reads outside of the target regions.
-\citealp{shrestha} performed a similar unbiased analysis on 35 base reads sequenced from
-the X chromosome and gauged a read as accurately mapped if it aligned
+\citealp{shrestha} performed an unbiased analysis on 35 base reads sequenced from
+the X chromosome and called a read as accurately mapped if it aligned
 to the X chromosome; here, we map to the entire genome with 100-base paired-end reads.
 
-In addition, we perform simulations with 100-base paired-end reads using
+In addition, we map 100-base paired-end reads simulated using
 Sherman (v0.1.6), the software from the authors of Bismark. All data were
 aligned to mouse genome version \textit{mm10}.
 
@@ -107,51 +107,54 @@ We aligned real and simulated data, both as-is and trimmed by quality (using Tri
 default parameters), using the software and versions in Supplemental Table 1.
 We evaluated a few parameters for each method and report only the
 best-performing here. Likely, every aligner could show improved results with
-exhaustive selection of the parameters, but this is a fair representation of
-what we understand to be reasonable selections.
-We considered a real read to be in the target region if it was within 1001 bases
-of the target area.
+exhaustive search of the parameters, but this is a representation of
+reasonable selections.
+We considered a real read to be on-target if it was within 1001 bases
+of a target region.
+
+We designed \textit{bwa-meth} for paired-end reads from the directional
+protocol but it can align single-end reads. \textit{bwa-meth} outputs alignments
+directly to a sorted BAM format that is usable even by those tools that require
+strict conformance to the format. Since it consists
+of fewer than 600 lines of code (10-fold less than other aligners) and runs
+quickly, it can be used as a platform to test other optimizations. For example
+in Supplemental Figure 5, we show a feature that further reduces the
+number of off-target reads by considering only the single strand targeted by
+the SureSelect protocol.
 
 \end{methods}
 
 \begin{figure}[!tpb]%figure1
-    \centerline{\includegraphics[width=86mm]{qual-plot-real}}
+    \centerline{\includegraphics[width=86mm]{real-quals}}
     \caption{Percent of paired-end, 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner.}\label{fig:01}
 \end{figure}
 
 \section{Discussion}
 
-While \textit{bwa-meth} can align single-end reads, it has been optimized for
-paired-end reads from the directional protocol, we show its utility here on real
-and simulated data. Since it consists
-of fewer than 600 lines of code (10-fold less than other aligners) and runs
-quickly, it can be used as a platform to test other optimizations. For example
-in Supplemental Figure 5, we show a feature that further reduces the
-number of off-target reads by considering only the single strand targetted by
-the SureSelect protocol.
-
 \subsection{Accuracy}
 For the aligners that report a range of mapping quality
-scores--an indicator of the aligner's confidence in the alignment--
-we vary the score from 1 to the maximum, 255, to draw an ROC-like
+scores--an indicator of the aligner's confidence in the
+alignment--we vary the score from 1 to the maximum, 255, to draw an ROC-like
 curve showing the trade-off between sensitivity and specificity. For the
 other aligners, we plot their single location. Figure \ref{fig:01} shows
 the on and off-target reads for our real paired-end data. Last and 
 \textit{bwa-meth} align the most reads on target with a low percent
-of off-target reads, but Last provides better control over the number
-of off-target reads. On trimmed data, Bison performs very well and has
-even fewer off-target reads than Last.
+of off-target reads, but Last can provide better control over the number
+of off-target reads. On trimmed data, \textit{bwa-meth}, Last, Bison and
+Bsmooth all perform similarly with Bison allowing very good control
+over the number off-target reads (Supplement Figure 2).
+Only Last and \textit{bwa-meth} are relatively unaffected by quality-trimming.
+
 Bismark performance varies depending on whether it uses bowtie version
 1 or 2 for the backend but in either case, (as with all of the bowtie-backed
 aligners) it performs better with trimmed reads.
 
 Similar comparisons are shown in Supplemental Figures 2
 for trimmed data and for simulated data in Supplemental Figures 3 and 4.
-\textit{Bwa-meth} does out-perform Last (along with the other aligners)
-for simulated data.
+\textit{Bwa-meth} does out-perform all aligners for simulated data.
 
 \subsection{Computational Resources}
-Within reason, we are more interested in the accuracy of a
+We are more interested in the accuracy of a
 method than the speed. In general the aligners are comparable in terms of
 speed. While Bismark with bowtie1 is quite fast on the simulated data it
 can not use multiple processes and so takes the longest user-time. Bsmap
@@ -160,36 +163,24 @@ timings and maximum memory use in Supplemental Information.
 Bsmap uses the least disk, never writing an index of the reference genome
 and only writing the alignment files. All other aligners write an index of
 the reference genome. Last, bsmooth, and bismark write additional copies of the
-reads to disk. This is to aid in parallelization in the case of Last and to
-write the \emph{in silico} converted reads in the case of bismark and bsmooth.
-While these could be addressed in either case, they are considerations
-at the time of writing as are the output formats which require varying degrees
-of post-processing to be using by other tools.
-In addition, if an aligner must write trimmed and converted copies of the
-sequence data, this increases the storage requirements enough to be a
-burden in our experience. \textit{Bwa-meth} avoids writing the \emph{in silico}
-converted reads to disk by streaming them directly to the aligner and works
-well without read-trimming.
+reads to disk.
+\textit{Bwa-meth} avoids writing the \emph{in silico}
+converted reads to disk by streaming them directly to the aligner and shows
+nearly identical accuracy without read-trimming. The trimming and conversion
+steps can increase data storage needs enough to be a burden in our experience. 
+
 None of the programs used an inordinate amount of memory, however, due to
 the parallelization strategy, Last did require about 10GB of shared memory
 per process.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%     please remove the " % " symbol from \centerline{\includegraphics{fig01.eps}}
-%     as it may ignore the figures.
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 \section{Conclusion}
-We have shown that \textit{bwa-meth} is very accurate, even without quality
-trimming. Aligners that use global alignment benefit more from quality trimming
-and also require an additional copy of the \emph{in silico} converted reads.
-We have utilized a new technology that captures CpG-rich regions to compare
-accuracy and speed of \textit{bwa-meth} to existing aligners.
-It demonstrates greater accuracy than other aligners, it outputs mapping quality
-scores and outputs an alignment file which is immediately usable by downstream
-tools.
+We have used simulated reads along with reads from a capture method that
+targets CpG-rich regions to compare aligners.
+We show that \textit{bwa-meth} is very accurate, even without quality trimming.
+Aligners that use global alignment benefit more from quality trimming and may
+also require an additional copy of the \emph{in silico} converted reads.
+\textit{bwa-meth} is also very fast and it outputs alignments to a sorted bam
+that is immediately usable by downstream tools.
 
 \section*{Acknowledgement}
 We thank Devon Ryan for several helpful conversations.
