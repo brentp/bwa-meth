@@ -479,12 +479,16 @@ def tabulate_main(args):
         d['start'], d['end'] = str(int(d['POS']) - 1), d['POS']
         d['chrom'] = d['CHROM']
         for sample in samples:
+            if d[sample] == "./.": continue
             sinfo = dict(zip(d['FORMAT'].split(":"), d[sample].split(":")))
             try:
                 d['cs'] = int(sinfo['CM'])  # (M)ethylated
                 d['ts'] = int(sinfo['CU'])  # (U)n
             except ValueError:
                 continue
+            except:
+                sys.stderr.write("\nline:%i\t%s\t%s\n" % (i, d, sinfo))
+                raise
             d['ctx'] = sinfo['CP']
             if contexts is not None:
                 if not d['ctx'] in contexts: continue
