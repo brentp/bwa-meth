@@ -461,6 +461,16 @@ def tabulate_main(args):
                 'CG': "CG YG SG MG CR CS CK".split()}[a.context]
 
     run(cmd)
+    if a.region:
+        if op.exists(a.region):
+            name = op.basename(a.region)
+            if name.endswith('.gz'): name = name[:-3]
+            if name.endswith('.bed'): name = name[:-4]
+        else:
+            name = region
+        a.prefix += name + "."
+
+
     fmt = a.format.rstrip('\n') + '\n'
     sys.stderr.write(a.prefix + "meth.vcf\n")
     for i, d in enumerate(reader(a.prefix + "meth.vcf",
