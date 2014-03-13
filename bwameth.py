@@ -430,16 +430,26 @@ def tabulate_main(args):
     trim = list(map(int, a.trim.split(",")))
     if not a.prefix.endswith(('/', '.')):
         a.prefix += "."
+    if a.region:
+        if op.exists(a.region):
+            name = op.basename(a.region)
+            if name.endswith('.gz'): name = name[:-3]
+            if name.endswith('.bed'): name = name[:-4]
+        else:
+            name = a.region
+        a.prefix += name + "."
 
     cmd = """\
-    java -Xmx15g -jar {bissnp}
+    java -Xmx12g -jar {bissnp}
         -R {reference}
         -I {bams}
         -T BisulfiteGenotyper
         --trim_5_end_bp {trim5}
         --trim_3_end_bp {trim3}
         -vfn1 {prefix}meth.vcf -vfn2 {prefix}snp.vcf
-        -mbq 20
+        -mbq 15
+        -minConv 0
+        -toCoverage 2000
         -mmq {mapq} {dbsnp} {region}
         -nt {threads}""".format(
             threads=a.threads,
@@ -461,14 +471,6 @@ def tabulate_main(args):
                 'CG': "CG YG SG MG CR CS CK".split()}[a.context]
 
     run(cmd)
-    if a.region:
-        if op.exists(a.region):
-            name = op.basename(a.region)
-            if name.endswith('.gz'): name = name[:-3]
-            if name.endswith('.bed'): name = name[:-4]
-        else:
-            name = region
-        a.prefix += name + "."
 
 
     fmt = a.format.rstrip('\n') + '\n'
