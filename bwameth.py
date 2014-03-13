@@ -467,7 +467,7 @@ def tabulate_main(args):
             if name.endswith('.gz'): name = name[:-3]
             if name.endswith('.bed'): name = name[:-4]
         else:
-            name = region
+            name = a.region
         a.prefix += name + "."
 
 
