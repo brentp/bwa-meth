@@ -436,7 +436,7 @@ def tabulate_main(args):
             if name.endswith('.gz'): name = name[:-3]
             if name.endswith('.bed'): name = name[:-4]
         else:
-            name = a.region
+            name = a.region.replace(":", "-")
         a.prefix += name + "."
 
     cmd = """\
@@ -471,7 +471,6 @@ def tabulate_main(args):
                 'CG': "CG YG SG MG CR CS CK".split()}[a.context]
 
     run(cmd)
-
 
     fmt = a.format.rstrip('\n') + '\n'
     sys.stderr.write(a.prefix + "meth.vcf\n")
