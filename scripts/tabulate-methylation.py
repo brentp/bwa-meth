@@ -48,7 +48,7 @@ def tabulate_main(args):
     a = p.parse_args(args)
     assert os.path.exists(a.reference)
 
-    cmd = "|samtools mpileup -f {reference} -r chr12 -d100000 -BIQ 20 -q {map_q} {bams}"
+    cmd = "|samtools mpileup -f {reference} -d100000 -BQ 20 -q {map_q} {bams}"
     cmd = cmd.format(reference=a.reference, map_q=a.map_q, bams=" ".join(a.bams))
     print >>sys.stderr, "generating pileup with command:", cmd
     samples = [op.basename(b)[:-4] for b in a.bams]
@@ -96,7 +96,7 @@ def tabulate_methylation(fpileup, reference, samples):
     fhs = []
     for sample in samples:
         fhs.append(open('%s.methylation.txt' % sample, 'w'))
-        fhs[-1].write("#chrom\tpos0\tpos1\tpct\tn_same\tn_converted")
+        fhs[-1].write("#chrom\tpos0\tpos1\tpct\tn_same\tn_converted\n")
 
     for toks in (l.rstrip("\r\n").split("\t") for l in nopen(fpileup)):
         chrom, pos1, ref = toks[:3]
@@ -131,7 +131,6 @@ def tabulate_methylation(fpileup, reference, samples):
             pct = 100. * n_same / float(n_same + n_converted)
             #fhs[i].write("{chrom}\t{pos0}\t{pos1}\t{pct:.1f}\t{n_same}\t{n_converted}\t{ctx}\n".format(**locals()))
             fhs[i].write("{chrom}\t{pos0}\t{pos1}\t{pct:.1f}\t{n_same}\t{n_converted}\n".format(**locals()))
-
 
 if __name__ == "__main__":
     tabulate_main(sys.argv[1:])
