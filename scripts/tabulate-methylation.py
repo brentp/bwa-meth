@@ -39,17 +39,22 @@ def tabulate_main(args):
     tabulate methylation from bwa-meth.py call
     """
     p = argparse.ArgumentParser(__doc__)
-    p.add_argument("--reference", help="reference fasta")
-    p.add_argument("-t", "--threads", type=int, default=6)
-    p.add_argument("--map-q", type=int, default=10, help="only tabulate "
+    p.add_argument("--reference", help="reference fasta", required=True)
+    p.add_argument("--region", help="specific region in which to run mpileup",
+            default="")
+    p.add_argument("--map-q", "-q", type=int, default=10, help="only tabulate "
                    "methylation for reads with at least this mapping quality")
+    p.add_argument("--base-q", "-Q", type=int, default=10, help="only tabulate "
+                   "methylation for bases with at least this quality")
     p.add_argument("bams", nargs="+")
 
     a = p.parse_args(args)
     assert os.path.exists(a.reference)
-
-    cmd = "|samtools mpileup -f {reference} -d100000 -BQ 20 -q {map_q} {bams}"
-    cmd = cmd.format(reference=a.reference, map_q=a.map_q, bams=" ".join(a.bams))
+    if a.region:
+        a.region = ("-l " if op.exists(a.region) else "-r ") + a.region
+    cmd = "|samtools mpileup -f {reference} {region} -d100000 -BQ {base_q} -q {map_q} {bams}"
+    cmd = cmd.format(reference=a.reference, map_q=a.map_q, base_q=a.base_q,
+                     bams=" ".join(a.bams), region=a.region)
     print >>sys.stderr, "generating pileup with command:", cmd
     samples = [op.basename(b)[:-4] for b in a.bams]
     tabulate_methylation(cmd, a.reference, samples)
@@ -99,6 +104,7 @@ def tabulate_methylation(fpileup, reference, samples):
         fhs[-1].write("#chrom\tpos0\tpos1\tpct\tn_same\tn_converted\n")
 
     for toks in (l.rstrip("\r\n").split("\t") for l in nopen(fpileup)):
+        print "\t".join(toks)
         chrom, pos1, ref = toks[:3]
         pos1 = int(pos1)
         pos0 = pos1 - 1
