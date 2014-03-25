@@ -42,60 +42,34 @@ def tabulate_main(args):
     p.add_argument("--reference", help="reference fasta", required=True)
     p.add_argument("--region", help="specific region in which to run mpileup",
             default="")
+    p.add_argument("--g-only", default=False, action="store_true",
+        help="only use information from the reverse strand (G->A conversions)")
     p.add_argument("--map-q", "-q", type=int, default=10, help="only tabulate "
                    "methylation for reads with at least this mapping quality")
     p.add_argument("--base-q", "-Q", type=int, default=10, help="only tabulate "
                    "methylation for bases with at least this quality")
+    p.add_argument("--skip-left", type=int, default=3, help="don't use the "
+            "first N bases from the start of the read to avoid bias")
+    p.add_argument("--skip-right", type=int, default=3, help="don't use the "
+            "last N bases from the end of the read to avoid bias")
+    p.add_argument("--read-length", type=int, help="length of reads"
+            " before trimming for used with skipping", required=True)
     p.add_argument("bams", nargs="+")
 
     a = p.parse_args(args)
     assert os.path.exists(a.reference)
     if a.region:
         a.region = ("-l " if op.exists(a.region) else "-r ") + a.region
-    cmd = "|samtools mpileup -f {reference} {region} -d100000 -BQ {base_q} -q {map_q} {bams}"
+    cmd = "|samtools mpileup -Of {reference} {region} -d100000 -BQ {base_q} -q {map_q} {bams}"
     cmd = cmd.format(reference=a.reference, map_q=a.map_q, base_q=a.base_q,
                      bams=" ".join(a.bams), region=a.region)
     print >>sys.stderr, "generating pileup with command:", cmd
     samples = [op.basename(b)[:-4] for b in a.bams]
-    tabulate_methylation(cmd, a.reference, samples)
+    tabulate_methylation(cmd, a.reference, samples, a.g_only, a.skip_left,
+            a.read_length - a.skip_right)
 
-def call_single_pileup(chrom, pos1, ref, coverage, bases, quals):
-    """
-    With directional protocol, we know:
-        1. methylable site has 'G' on the opposite strand
-        2. methylated site has 'C' on the + strand
-        3. un-methylated site has 'T' on the + strand
-        4. SNP has base(minus) != complement(reference)
-
-    Return value is:
-        {'p_snp': 0.5,
-        'p_methylable': 0.5,
-        'p_methylated|methylable': 0.5,
-        'C': 20,
-        'T': 20}
-
-    p_methylable = n(G-) / n(total-)
-    p_methylated|methylable = n(C+) / n(C+ + T+)
-    p_snp = n(- != comp(ref)) / n(total -)
-
-    """
-    from collections import Counter
-    print bases
-
-    ref = ref.upper()
-    plus  = Counter(b for b in bases if b != "," and b == b.upper())
-    minus = Counter(b for b in bases if b != "." and b == b.lower())
-
-    print plus
-    print minus
-    1/0
-
-
-# TODO: use samtools snp calling with strand-filter off. 
-# samtools mpileup -f /home/brentp/chr11.mm10.fa -d100000 -ugEIQ 20 -q 10
-# bwa-meth.bam | bcftools view -Acvgm 0.99 -p 0.8 - | vcfutils.pl  varFilter -1 0
-
-def tabulate_methylation(fpileup, reference, samples):
+def tabulate_methylation(fpileup, reference, samples, g_only=False,
+        skip_left=1, skip_right=99):
 
     conversion = {"C": "T", "G": "A"}
     fhs = []
@@ -103,12 +77,28 @@ def tabulate_methylation(fpileup, reference, samples):
         fhs.append(open('%s.methylation.txt' % sample, 'w'))
         fhs[-1].write("#chrom\tpos0\tpos1\tpct\tn_same\tn_converted\n")
 
+    import re
+    # regexp to remove the ^, $ stuff
+    end_re = re.compile("\^.|\$")
+    deletion_re = re.compile("(-\d+[ACTGNatcgn]+)")
+
+    insertion_re = re.compile("\+(\d+)([ACTGNatcgn]+)")
+    deletion_re = re.compile("-(\d+)([ACTGNatcgn]+)")
+
+    def del_sub(m):
+        """ with a base string like "-1ACTG" just return CTG
+        for -3CCCTG return TG
+        """
+        n = int(m.groups()[0])
+        bases = m.groups()[1]
+        return bases[n:]
+
     for toks in (l.rstrip("\r\n").split("\t") for l in nopen(fpileup)):
-        print "\t".join(toks)
         chrom, pos1, ref = toks[:3]
         pos1 = int(pos1)
         pos0 = pos1 - 1
         ref = ref.upper()
+        if g_only and ref != "G": continue
         converted = conversion.get(ref)
         if converted is None:
             continue
@@ -116,24 +106,38 @@ def tabulate_methylation(fpileup, reference, samples):
         ctx = get_context(s, ref == "C")
         if not ctx.startswith("CG"): continue
         for i, sample in enumerate(samples):
-            coverage, bases, quals = toks[3 + (i * 3): 6 + (i * 3)]
+            coverage, bases, quals, posns = toks[3 + (i * 4): 7 + (i * 4)]
             if coverage == '0': continue
+            obases = bases[:]
+            oquals = quals[:]
+
+            bases = end_re.sub("", bases) # remove $ and ^.
+            ebases = bases
+            bases = deletion_re.sub(del_sub, bases)
+            dbases = bases
+            bases = insertion_re.sub(del_sub, bases)
+
+            keep = [skip_left < int(p) < skip_right for p in posns.split(",")]
+            if not any(keep): continue
+            bases = "".join(b for j, b in enumerate(bases) if keep[j])
+            if bases == "": continue
 
             # . == same on + strand, , == same on - strand
-            n_same_plus = sum(1 for b in bases if b in ".")
-            n_same_minus = sum(1 for b in bases if b in ",")
+            n_same_plus = bases.count(".")
+            n_same_minus = bases.count(",")
             n_same = n_same_plus + n_same_minus
 
-            n_converted_plus = sum(1 for b in bases if b == converted)
-            n_converted_minus = sum(1 for b in bases if b == converted.lower())
-            n_converted = n_converted_plus + n_converted_minus
-            #n_converted = sum(1 for b in bases if b == converted)
+            #n_converted_plus = b.count(converted)
+            #n_converted_minus = b.count(converted_lower())
+            #n_converted = n_converted_plus + n_converted_minus
+            n_converted = bases.upper().count(converted)
+            if n_same + n_converted == 0: continue
             # SNP
             n_other = sum(1 for b in bases.lower() if b in "actg" and b !=
                     converted.lower())
+            # weak filtering here for a likely snp.
             if n_other > n_converted: continue
 
-            if n_same + n_converted == 0: continue
             pct = 100. * n_same / float(n_same + n_converted)
             #fhs[i].write("{chrom}\t{pos0}\t{pos1}\t{pct:.1f}\t{n_same}\t{n_converted}\t{ctx}\n".format(**locals()))
             fhs[i].write("{chrom}\t{pos0}\t{pos1}\t{pct:.1f}\t{n_same}\t{n_converted}\n".format(**locals()))
