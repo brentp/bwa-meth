@@ -53,6 +53,13 @@ Installation
 
    - or run: `python setup.py install` from this directory
 
+   - those commands may need to be run with `sudo` depending on your
+     python installation
+
+   - users unaccustomed to installing their own python packages should 
+     download anaconda: https://store.continuum.io/cshop/anaconda/ and
+     then install the toolshed module as described above.
+
  + samtools command on the `$PATH` (https://github.com/samtools/samtools)
 
  + bwa mem from: https://github.com/lh3/bwa
