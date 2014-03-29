@@ -30,7 +30,7 @@ except ImportError: # python3
     maketrans = str.maketrans
 from toolshed import nopen, reader, is_newer_b
 
-__version__ = "0.08"
+__version__ = "0.09"
 
 def checkX(cmd):
     for p in os.environ['PATH'].split(":"):
@@ -430,16 +430,26 @@ def tabulate_main(args):
     trim = list(map(int, a.trim.split(",")))
     if not a.prefix.endswith(('/', '.')):
         a.prefix += "."
+    if a.region:
+        if op.exists(a.region):
+            name = op.basename(a.region)
+            if name.endswith('.gz'): name = name[:-3]
+            if name.endswith('.bed'): name = name[:-4]
+        else:
+            name = a.region.replace(":", "-")
+        a.prefix += name + "."
 
     cmd = """\
-    java -Xmx15g -jar {bissnp}
+    java -Xmx12g -jar {bissnp}
         -R {reference}
         -I {bams}
         -T BisulfiteGenotyper
         --trim_5_end_bp {trim5}
         --trim_3_end_bp {trim3}
         -vfn1 {prefix}meth.vcf -vfn2 {prefix}snp.vcf
-        -mbq 20
+        -mbq 15
+        -minConv 0
+        -toCoverage 2000
         -mmq {mapq} {dbsnp} {region}
         -nt {threads}""".format(
             threads=a.threads,
@@ -461,6 +471,7 @@ def tabulate_main(args):
                 'CG': "CG YG SG MG CR CS CK".split()}[a.context]
 
     run(cmd)
+
     fmt = a.format.rstrip('\n') + '\n'
     sys.stderr.write(a.prefix + "meth.vcf\n")
     for i, d in enumerate(reader(a.prefix + "meth.vcf",
@@ -479,12 +490,16 @@ def tabulate_main(args):
         d['start'], d['end'] = str(int(d['POS']) - 1), d['POS']
         d['chrom'] = d['CHROM']
         for sample in samples:
+            if d[sample] == "./.": continue
             sinfo = dict(zip(d['FORMAT'].split(":"), d[sample].split(":")))
             try:
                 d['cs'] = int(sinfo['CM'])  # (M)ethylated
                 d['ts'] = int(sinfo['CU'])  # (U)n
             except ValueError:
                 continue
+            except:
+                sys.stderr.write("\nline:%i\t%s\t%s\n" % (i, d, sinfo))
+                raise
             d['ctx'] = sinfo['CP']
             if contexts is not None:
                 if not d['ctx'] in contexts: continue
