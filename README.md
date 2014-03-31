@@ -46,6 +46,9 @@ See the **full example** at: https://github.com/brentp/bwa-meth/tree/master/exam
 Installation
 ============
 
+ + Download. If you prefer not to use git, you can get a .tar.gz or
+   .zip from https://github.com/brentp/bwa-meth/releases
+
 `bwa-meth` depends on 
 
  + python 2.7+ (including python3)
