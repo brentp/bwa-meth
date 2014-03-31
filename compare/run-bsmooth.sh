@@ -20,7 +20,7 @@ perl $BSMOOTH/bin/bswc_bowtie2_align.pl \
     --out results/$prog/$name/ \
     --bam $BAM \
     -- bsmooth/$(basename $REF .fa) -- $REF \
-    -- --very-sensitive -p 6 -- $FQ1 -- $FQ2
+    -- --very-sensitive -p 8 -- $FQ1 -- $FQ2
 
 samtools view -h $BAM.crick.bam | python src/bsmooth-adjust-crick.py | samtools view -bS - > $BAM.crick.fix.bam
 java -jar $PICARD/MergeSamFiles.jar I=$BAM.watson.bam I=$BAM.crick.fix.bam O=$BAM AS=false " | bsub -J $prog-$name -e logs/$prog-$name.err -o logs/$prog-$name.out -n 12 -R "span[hosts=1]"
@@ -35,7 +35,7 @@ perl $BSMOOTH/bin/bswc_bowtie2_align.pl \
     --out results/trim/$prog/$name/ \
     --bam $BAM \
     -- bsmooth/$(basename $REF .fa) -- $REF \
-    -- --very-sensitive -p 6 -- $TRIM_FQ1 -- $TRIM_FQ2
+    -- --very-sensitive -p 8 -- $TRIM_FQ1 -- $TRIM_FQ2
 
 samtools view -h $BAM.crick.bam | python src/bsmooth-adjust-crick.py | samtools view -bS - > $BAM.crick.fix.bam
 java -jar $PICARD/MergeSamFiles.jar I=$BAM.watson.bam I=$BAM.crick.fix.bam O=$BAM AS=false " | bsub -J trim-$prog-$name -e logs/trim-$prog-$name.err -o logs/trim-$prog-$name.out -n 12 -R "span[hosts=1]"
