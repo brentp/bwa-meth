@@ -71,7 +71,7 @@ sudo python setup.py install
 After this, you should be able to run: `bwameth.py` and see the help.
 
 Dependencies
-++++++++++++
+------------
 
 `bwa-meth` depends on 
 
