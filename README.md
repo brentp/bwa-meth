@@ -47,7 +47,8 @@ Installation
 ============
 
  + Download. If you prefer not to use git, you can get a .tar.gz or
-   .zip from https://github.com/brentp/bwa-meth/releases
+   .zip from https://github.com/brentp/bwa-meth/releases (then
+   tar xzvf $TAR and cd into that directory)
 
 `bwa-meth` depends on 
 
