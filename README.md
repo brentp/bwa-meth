@@ -46,26 +46,22 @@ See the **full example** at: https://github.com/brentp/bwa-meth/tree/master/exam
 Installation
 ============
 
- + *Download* If you prefer not to use git, you can get a .tar.gz or
-   .zip from https://github.com/brentp/bwa-meth/releases (then
-   tar xzvf $TAR and cd into that directory)
-
-   The following snippet should work for most systems that have samtools
-   and bwa installed and the ability to install python packages. See the
-   dependencies section below for further instructions if that is not the case:
+The following snippet should work for most systems that have samtools and bwa
+installed and the ability to install python packages. (Or, you can send this
+to your sys-admin). See the dependencies section below for further instructions: 
 
 ```Shell
 
-# these 4 lines are only needed if you don't have toolshed installed
-wget https://pypi.python.org/packages/source/t/toolshed/toolshed-0.3.6.tar.gz
-tar xzvf toolshed-0.3.6.tar.gz
-cd toolshed-0.3.6
-sudo python setup.py install
+    # these 4 lines are only needed if you don't have toolshed installed
+    wget https://pypi.python.org/packages/source/t/toolshed/toolshed-0.3.6.tar.gz
+    tar xzvf toolshed-0.3.6.tar.gz
+    cd toolshed-0.3.6
+    sudo python setup.py install
 
-wget https://github.com/brentp/bwa-meth/archive/v0.09.tar.gz
-tar xzvf v0.09.tar.gz
-cd bwa-meth-0.09/
-sudo python setup.py install
+    wget https://github.com/brentp/bwa-meth/archive/v0.09.tar.gz
+    tar xzvf v0.09.tar.gz
+    cd bwa-meth-0.09/
+    sudo python setup.py install
 
 ```
 
