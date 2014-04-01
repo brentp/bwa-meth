@@ -51,7 +51,8 @@ Installation
    tar xzvf $TAR and cd into that directory)
 
    The following snippet should work for most systems that have samtools
-   and bwa installed:
+   and bwa installed and the ability to install python packages. See the
+   dependencies section below for further instructions if that is not the case:
 
 ```Shell
 
