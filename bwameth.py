@@ -341,10 +341,10 @@ def handle_reads(alns, set_as_failed):
         if set_as_failed == direction:
             aln.flag |= 0x200
 
-        # here we have a heuristic that if the longest match is not 40% of the
+        # here we have a heuristic that if the longest match is not 44% of the
         # sequence length, we mark it as failed QC and un-pair it. At the end
         # of the loop we set all members of this pair to be unmapped
-        if aln.longest_match() < (len(orig_seq) * 0.4):
+        if aln.longest_match() < (len(orig_seq) * 0.44):
             aln.flag |= 0x200  # fail qc
             aln.flag &= (~0x2) # un-pair
             aln.mapq = min(aln.mapq, 1)
