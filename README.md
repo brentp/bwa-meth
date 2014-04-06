@@ -56,14 +56,16 @@ Installation
       * `easy_install toolshed` or
       * `pip install toolshed`
 
-   - or run: `python setup.py install` from this directory
+   - if you don't have root or sudo priviledges, you can run
+     `python setup.py install --user` from this directory and the bwameth.py
+     executable will be at: ~/.local/bin/bwameth.py
 
-   - those commands may need to be run with `sudo` depending on your
-     python installation
+   - if you do have root or sudo run: `[sudo] python setup.py install` from
+     this directory
 
    - users unaccustomed to installing their own python packages should 
      download anaconda: https://store.continuum.io/cshop/anaconda/ and
-     then install the toolshed module as described above.
+     then install the toolshed module with pip as described above.
 
  + samtools command on the `$PATH` (https://github.com/samtools/samtools)
 
