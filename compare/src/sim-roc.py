@@ -9,9 +9,12 @@ from itertools import cycle
 import pylab as pl
 
 def name(bam):
-    return op.basename(bam).rsplit(".", 1)[0].split("-")[0]
+    #return op.basename(bam).rsplit(".", 1)[0].split("-")[0]
+    return op.basename(bam).rsplit(".", 1)[0].split("-")[0] + ("-trim" if "trim" in bam else "")
 
 def count_on_off(bam, flags, pad):
+
+    if not "last" in bam: flags = flags + " -f 0x2"
 
     on_count = [0] * 256
     off_count = [0] * 256
@@ -30,6 +33,10 @@ def count_on_off(bam, flags, pad):
         if "random" in toks[0]: continue
         if "chrUn" in toks[0]: continue
 
+        qual = int(toks[4])
+        if toks[0].endswith("_BAD"):
+            off_count[qual] += 1
+
         rname, flag = toks[0], int(toks[1])
         rcounts[rname] += 1
         # @2_chr4:72040172-72040686_R1
@@ -44,7 +51,6 @@ def count_on_off(bam, flags, pad):
 
         pos = int(start if flag & 0x40 else end)
         on = chrom == toks[2] and abs(pos - int(toks[3])) <= pad
-        qual = int(toks[4])
         if on:
             on_count[qual] += 1
         else:
@@ -60,9 +66,9 @@ FLAGS="-F%i" % (0x4 | 0x100 | 0x200)
 def main(bams, reads=None, flags=FLAGS, pad=2002):
     reads = 2 * float(nopen("|bioawk -c fastx 'END { print NR }' %s" % reads).next())
 
-    if any('trim' in b for b in bams):
-        assert all('trim' in b for b in bams), [b for b in bams if not 'trim'
-                in b]
+    #if any('trim' in b for b in bams):
+    #    assert all('trim' in b for b in bams), [b for b in bams if not 'trim'
+    #            in b]
     counts = {}
     colors = cycle('rgbkmy')
     for bam in bams:

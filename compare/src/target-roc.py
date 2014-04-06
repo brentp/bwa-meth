@@ -25,6 +25,7 @@ def counter(fname):
 from toolshed import nopen, pmap
 
 def count_both(bam, regions, flags):
+    if not "last" in bam: flags += " -f0x2"
     off, on = OFF.format(**locals()), ON.format(**locals())
     return bam, map(counter, [off, on])
 
@@ -36,10 +37,13 @@ ON  = "| samtools view {bam} -L {regions} {flags}"
 OFF = "| bedtools intersect -ubam -abam {bam} -b {regions} -wa -v \
        | samtools view - {flags}"
 
-def main(regions, bams, reads=None, flags="-F%i" % (0x100 | 0x4 | 0x200), pad=50):
+def main(regions, bams, reads=None, flags="-F%i" % (0x100 | 0x4 | 0x200),
+        pad=100):
     r2 = open(tempfile.mktemp(), 'w')
     for toks in reader(regions, header=False):
         if toks[0][0] == "@" or not (toks[1] + toks[2]).isdigit(): continue
+        toks[1] = str(int(toks[1]) - pad)
+        toks[2] = str(int(toks[2]) + pad)
         print >>r2, "\t".join(toks)
     r2.flush()
     regions = r2.name
@@ -69,7 +73,7 @@ def main(regions, bams, reads=None, flags="-F%i" % (0x100 | 0x4 | 0x200), pad=50
     pl.show()
     os.unlink(r2.name)
 
-    out = open('qual-summary.txt', 'w')
+    out = sys.stdout
     print >>out, "qual\tmethod\toff\ton"
 
     for qual in range(0, 256):
