@@ -13,13 +13,15 @@ So that A.fq has C's converted to T's and B.fq has G's converted to A's
 and both are streamed directly to the aligner without a temporary file.
 The output is a corrected, sorted, indexed BAM.
 """
-
+from __future__ import print_function
 import sys
 import os
 import os.path as op
 import argparse
 from subprocess import check_call
-from itertools import groupby, repeat
+from operator import itemgetter
+from itertools import groupby, repeat, chain
+import re
 
 try:
     from itertools import izip
@@ -222,6 +224,9 @@ class Bam(object):
     def ga_ct(self):
         return [x for x in self.other if x.startswith("YC:Z:")]
 
+    def longest_match(self, patt=re.compile("\d+M")):
+        return max(int(x[:-1]) for x in patt.findall(self.cigar))
+
 
 def rname(fq1, fq2=""):
     fq1, fq2 = fq1.split(",")[0], fq2.split(",")[0]
@@ -261,7 +266,7 @@ def as_bam(pfile, fa, prefix, calmd=False, set_as_failed=None):
     set_as_failed: None, 'f', or 'r'. If 'f'. Reads mapping to that strand
                       are given the sam flag of a failed QC alignment (0x200).
     """
-    view = "samtools view -bS - | samtools sort -@3 - "
+    view = "samtools view -bS - | samtools sort - "
     if calmd:
         cmds = [
             view + "{bam}.tmp",
@@ -277,18 +282,17 @@ def as_bam(pfile, fa, prefix, calmd=False, set_as_failed=None):
 
     p = nopen("|" + cmds[0], 'w')
     out = p.stdin
+    bam_iter = reader("%s" % (pfile,), header=False)
+    for toks in bam_iter:
+        if not toks[0].startswith("@"): break
+        handle_header(toks, out)
 
-    for toks in reader("%s" % (pfile, ), header=False):
-        if toks[0].startswith("@"):
-            handle_header(toks, out)
-            continue
+    bam_iter2 = chain([toks], bam_iter)
+    for read_name, pair_list in groupby(bam_iter2, itemgetter(0)):
+        pair_list = [Bam(toks) for toks in pair_list]
 
-        aln = handle_read(Bam(toks), set_as_failed)
-        try:
+        for aln in handle_reads(pair_list, set_as_failed):
             out.write(str(aln) + '\n')
-        except IOError:
-            sys.stderr.write(p.stderr.read())
-            raise
 
     p.stdin.flush()
     p.stdout.flush()
@@ -314,41 +318,53 @@ def handle_header(toks, out):
     out.write("\t".join(toks) + "\n")
 
 
-def handle_read(aln, set_as_failed):
+def handle_reads(alns, set_as_failed):
 
-    orig_seq = aln.original_seq
-    # don't need this any more.
-    aln.other = [x for x in aln.other if not x.startswith('YS:Z')]
-    if aln.chrom == "*":  # chrom
-        return aln
+    for aln in alns:
+        orig_seq = aln.original_seq
+        # don't need this any more.
+        aln.other = [x for x in aln.other if not x.startswith('YS:Z')]
+        if aln.chrom == "*":  # chrom
+            continue
 
-    # first letter of chrom is 'f' or 'r'
-    direction = aln.chrom[0]
-    aln.chrom = aln.chrom.lstrip('fr')
+        # first letter of chrom is 'f' or 'r'
+        direction = aln.chrom[0]
+        aln.chrom = aln.chrom.lstrip('fr')
 
-    if not aln.is_mapped():
-        aln.seq = orig_seq
-        return aln
+        if not aln.is_mapped():
+            aln.seq = orig_seq
+            continue
 
-    assert direction in 'fr', (direction, aln)
-    aln.other.append('YD:Z:' + direction)
+        assert direction in 'fr', (direction, aln)
+        aln.other.append('YD:Z:' + direction)
 
-    if set_as_failed == direction:
-        aln.flag |= 0x200
+        if set_as_failed == direction:
+            aln.flag |= 0x200
 
-    mate_direction = aln.chrom_mate[0]
-    if mate_direction not in "*=":
-        aln.chrom_mate = aln.chrom_mate[1:]
+        # here we have a heuristic that if the longest match is not 40% of the
+        # sequence length, we mark it as failed QC and un-pair it. At the end
+        # of the loop we set all members of this pair to be unmapped
+        if aln.longest_match() < (len(orig_seq) * 0.4):
+            aln.flag |= 0x200  # fail qc
+            aln.flag &= (~0x2) # un-pair
+            aln.mapq = min(aln.mapq, 1)
 
-    # adjust the original seq to the cigar
-    l, r = aln.left_shift(), aln.right_shift()
-    if aln.is_plus_read():
-        aln.seq = orig_seq[l:r]
-    else:
-        aln.seq = comp(orig_seq[::-1][l:r])
+        mate_direction = aln.chrom_mate[0]
+        if mate_direction not in "*=":
+            aln.chrom_mate = aln.chrom_mate[1:]
 
-    return aln
+        # adjust the original seq to the cigar
+        l, r = aln.left_shift(), aln.right_shift()
+        if aln.is_plus_read():
+            aln.seq = orig_seq[l:r]
+        else:
+            aln.seq = comp(orig_seq[::-1][l:r])
 
+    if any(aln.flag & 0x200 for aln in alns):
+        for aln in alns:
+            aln.flag |= 0x200
+            aln.flag &= (~0x2)
+    return alns
 
 def cnvs_main(args):
     __doc__ = """
@@ -440,16 +456,17 @@ def tabulate_main(args):
         a.prefix += name + "."
 
     cmd = """\
-    java -Xmx12g -jar {bissnp}
+    java -Xmx24g -jar {bissnp}
         -R {reference}
         -I {bams}
         -T BisulfiteGenotyper
         --trim_5_end_bp {trim5}
         --trim_3_end_bp {trim3}
         -vfn1 {prefix}meth.vcf -vfn2 {prefix}snp.vcf
-        -mbq 15
+        --non_directional_protocol
+        -mbq 12
         -minConv 0
-        -toCoverage 2000
+        -toCoverage 1000
         -mmq {mapq} {dbsnp} {region}
         -nt {threads}""".format(
             threads=a.threads,
@@ -499,6 +516,7 @@ def tabulate_main(args):
                 continue
             except:
                 sys.stderr.write("\nline:%i\t%s\t%s\n" % (i, d, sinfo))
+                sys.stderr.write("%s\n" % d[sample])
                 raise
             d['ctx'] = sinfo['CP']
             if contexts is not None:
