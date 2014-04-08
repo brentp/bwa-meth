@@ -5,7 +5,7 @@ Aligns BS-Seq reads and tabulates methylation without intermediate temp files.
 This works for single-end reads and for **paired-end reads from the
 directional protocol** (most common).
 
-Uses the method employed by methylcoder and Bismark of using *in silico*
+Uses the method employed by methylcoder and Bismark of *in silico*
 conversion of all C's to T's in both reference and reads.
 
 Recovers the original read (needed to tabulate methylation) by attaching it
