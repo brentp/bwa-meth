@@ -10,7 +10,7 @@ Sherman \
     -X 500 \
     --CG_conversion 25 \
     --CH_conversion 95 \
-    --error_rate 1
+    --error_rate 0.2
 
 sed 's/_R1$//' simulated_1.fastq | gzip -c > sim_R1.fastq.gz &
 sed 's/_R2$//' simulated_2.fastq | gzip -c > sim_R2.fastq.gz
@@ -24,12 +24,12 @@ rm -f simulated_1.fastq simulated_2.fastq
 Sherman \
     --genome_folder . \
     --length 100 \
-    -n 100000 \
+    -n 50000 \
     -pe \
     -X 500 \
     --CG_conversion 98 \
     --CH_conversion 98 \
-    --error_rate 1
+    --error_rate 0.2
 
 sed 's/_R1$/_BAD/' simulated_1.fastq | gzip -c >> sim_R1.fastq.gz &
 sed 's/_R2$/_BAD/' simulated_2.fastq | gzip -c >> sim_R2.fastq.gz
