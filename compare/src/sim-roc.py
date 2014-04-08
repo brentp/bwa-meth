@@ -7,12 +7,16 @@ from collections import defaultdict
 import numpy as np
 from itertools import cycle
 import pylab as pl
+import re
 
 def name(bam):
     #return op.basename(bam).rsplit(".", 1)[0].split("-")[0]
     return op.basename(bam).rsplit(".", 1)[0].split("-")[0] + ("-trim" if "trim" in bam else "")
 
-def count_on_off(bam, flags, pad):
+def count_bases(cigar, patt=re.compile("\d+[IM]")):
+    return sum(int(p[:-1]) for p in patt.findall(cigar))
+
+def count_on_off(bam, flags, pad, bases=False):
 
     if not "last" in bam: flags = flags + " -f 0x2"
 
@@ -32,10 +36,12 @@ def count_on_off(bam, flags, pad):
 
         if "random" in toks[0]: continue
         if "chrUn" in toks[0]: continue
+        cigar = toks[5]
 
         qual = int(toks[4])
         if toks[0].endswith("_BAD"):
-            off_count[qual] += 1
+            off_count[qual] += (count_bases(cigar) if bases else 1)
+            continue
 
         rname, flag = toks[0], int(toks[1])
         rcounts[rname] += 1
@@ -52,9 +58,9 @@ def count_on_off(bam, flags, pad):
         pos = int(start if flag & 0x40 else end)
         on = chrom == toks[2] and abs(pos - int(toks[3])) <= pad
         if on:
-            on_count[qual] += 1
+            on_count[qual] += (count_bases(cigar) if bases else 1)
         else:
-            off_count[qual] += 1
+            off_count[qual] += (count_bases(cigar) if bases else 1)
 
     on_count = np.cumsum(on_count[::-1])[::-1]
     off_count = np.cumsum(off_count[::-1])[::-1]
