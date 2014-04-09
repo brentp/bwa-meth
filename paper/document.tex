@@ -126,7 +126,12 @@ the SureSelect protocol.
 
 \begin{figure}[!tpb]%figure1
     \centerline{\includegraphics[width=86mm]{real-quals}}
-    \caption{Percent of paired-end, 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner.}\label{fig:01}
+    \caption{Percent of un-trimmed paired-end, 100-base reads on (y) and off (x)
+    target for the tested aligners. Aligners that report mapping quality are
+shown as connected dots for each quality cut-off. Reads are limited to those
+considered as primary, mapped alignments by the aligner. Some aligners
+shown here recommend trimming before alignment but we use the original reads
+for a consistent comparison. }\label{fig:01}
 \end{figure}
 
 \section{Discussion}
