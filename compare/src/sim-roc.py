@@ -7,7 +7,8 @@ from collections import defaultdict
 import numpy as np
 from itertools import cycle
 import pylab as pl
-import re
+
+BASES = False
 
 def name(bam):
     #return op.basename(bam).rsplit(".", 1)[0].split("-")[0]
@@ -16,7 +17,7 @@ def name(bam):
 def count_bases(cigar, patt=re.compile("\d+[IM]")):
     return sum(int(p[:-1]) for p in patt.findall(cigar))
 
-def count_on_off(bam, flags, pad, bases=False):
+def count_on_off(bam, flags, pad, bases=BASES):
 
     if not "last" in bam: flags = flags + " -f 0x2"
 
@@ -83,8 +84,13 @@ def main(bams, reads=None, flags=FLAGS, pad=2002):
     for bam in bams:
         counts[bam] = count_on_off(bam, flags, pad)
 
+        denom = float(reads)
+        # multiply by 100 bases per read.
+        if BASES: denom *= 100.
+
         symbol = 'o' if len(set(counts[bam][0])) < 3 else '.'
-        pl.plot(np.log10(1 + counts[bam][0][1:] / float(reads)), counts[bam][1][1:] / float(reads),
+        pl.plot(counts[bam][0][1:] / denom,
+                counts[bam][1][1:] / denom,
                 '%s%s' % (colors.next(), symbol), label=name(bam))
 
     pl.xlabel('off target')
