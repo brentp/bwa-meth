@@ -32,7 +32,7 @@ except ImportError: # python3
     maketrans = str.maketrans
 from toolshed import nopen, reader, is_newer_b
 
-__version__ = "0.09"
+__version__ = "0.10"
 
 def checkX(cmd):
     for p in os.environ['PATH'].split(":"):
@@ -347,7 +347,7 @@ def handle_reads(alns, set_as_failed):
         if aln.longest_match() < (len(orig_seq) * 0.44):
             aln.flag |= 0x200  # fail qc
             aln.flag &= (~0x2) # un-pair
-            aln.mapq = min(aln.mapq, 1)
+            aln.mapq = min(int(aln.mapq), 1)
 
         mate_direction = aln.chrom_mate[0]
         if mate_direction not in "*=":

@@ -96,7 +96,7 @@ and false positives as reads outside of the target regions.
 the X chromosome and called a read as accurately mapped if it aligned
 to the X chromosome; here, we map to the entire genome with 100-base paired-end reads.
 
-In addition, we map 100-base paired-end reads simulated using
+In addition, we map 100-base paired-end indel-free reads simulated using
 Sherman (v0.1.6), the software from the authors of Bismark. All data were
 aligned to mouse genome version \textit{mm10}.
 
@@ -114,13 +114,17 @@ of a target region.
 
 We designed \textit{bwa-meth} for paired-end reads from the directional
 protocol but it can align single-end reads. \textit{bwa-meth} outputs alignments
-directly to a sorted BAM format that is usable even by those tools that require
-strict conformance to the format. Since it consists
-of fewer than 600 lines of code (10-fold less than other aligners) and runs
+directly to a BAM file that is usable even by those tools that require
+coordinate-sorted alignments and read-groups. Since it consists
+of fewer than 600 lines of code and runs
 quickly, it can be used as a platform to test other optimizations. For example
 in Supplemental Figure 5, we show a feature that further reduces the
 number of off-target reads by considering only the single strand targeted by
 the SureSelect protocol.
+
+Although our comparisons are on an inbred mouse strain with few polymorphisms
+we expect the results will hold even with insertions and deletions due to
+our use of BWA mem \citep{bwamem}.
 
 \end{methods}
 
@@ -129,9 +133,9 @@ the SureSelect protocol.
     \caption{Percent of un-trimmed paired-end, 100-base reads on (y) and off (x)
     target for the tested aligners. Aligners that report mapping quality are
 shown as connected dots for each quality cut-off. Reads are limited to those
-considered as primary, mapped alignments by the aligner. Some aligners
-shown here recommend trimming before alignment but we use the original reads
-for a consistent comparison. }\label{fig:01}
+considered as primary, mapped alignments by the aligner. Note that, as shown
+in the supplement, many aligners have better performance on trimmed reads.
+}\label{fig:01}
 \end{figure}
 
 \section{Discussion}

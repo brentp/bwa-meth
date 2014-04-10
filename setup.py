@@ -3,11 +3,11 @@ ez_setup.use_setuptools()
 from setuptools import setup
 
 # from mpld3
-def get_version():
+def get_version(path):
     """Get the version info from the mpld3 package without importing it"""
     import ast
 
-    with open("bwameth.py") as init_file:
+    with open(path) as init_file:
         module = ast.parse(init_file.read())
 
     version = (ast.literal_eval(node.value) for node in ast.walk(module)
@@ -20,9 +20,9 @@ def get_version():
 
 
 setup(name='bwameth',
-      version=get_version(),
+      version=get_version("bwameth.py"),
       description="align BS-Seq reads with bwa mem",
-      #packages=['.'],
+      packages=[''],
       author="Brent Pedersen",
       author_email="bpederse@gmail.com",
       license="MIT",
