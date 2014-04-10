@@ -36,41 +36,38 @@
 \section{Advantages}
 \textit{bwa-meth} provides a number of advantages:
 
-1. ease of installation -- requires only python (python2 or python3), bwa,
-   and samtools for the aligner.
-
-2. ease of use -- a single script indexes the fasta, aligns the reads, and
+1. ease of use -- a single script indexes the fasta, aligns the reads, and
    tabulates methylation. Default parameters work well.
 
-3. speed -- due to the efficient parallelization by bwa, bwa-meth can run on
+2. speed -- due to the efficient parallelization by bwa, bwa-meth can run on
    as many CPU's are available on a single machine.
 
-4. disk-usage -- bwa-meth can take either compressed or uncompressed files
+3. disk-usage -- bwa-meth can take either compressed or uncompressed files
    and the reads are streamed directly to the aligner, never written to disk. An
    aligner that requires trimmed reads and that writes the converted reads to
    disk will require 3X as much storage for just the raw sequence data.
 
-5. useful output -- the BAM that results from bwa-meth is sorted, indexed and
+4. useful output -- the BAM that results from bwa-meth is sorted, indexed and
    contains the proper mapping quality scores, alignment flags, and read-groups.
    In addition, the header @SQ lines are sorted so that tools like Picard and
    GATK will accept them as is.
 
-6. simplicity -- we have carefully designed bwa-meth to be quite simple and
+5. simplicity -- we have carefully designed bwa-meth to be quite simple and
    the code readable so that enhancements are simple. For example, see \#7.
 
-7. strand-specificity -- Devon Ryan,
+6. strand-specificity -- Devon Ryan,
    the author of Bison, noted that many capture methods target only the reverse
    strand -- commonly called the original bottom. Though this would be simple to
    add to any aligner, ours is the only one that currently supports this. See
    from the supplemental figure 5 for the reduction in off-target reads that results
    from only considering reads that align to the original bottom strand.
 
-8. specificity and sensitivity -- while the difference between aligners in
+7. specificity and sensitivity -- while the difference between aligners in
    this regard is small, we have shown that bwa-meth consistently performs as
    the best or among the best. We believe this to be the case in general and
    not limited to the specific cases that we have shown.
 
-9. accuracy without trimming -- the accuracy is due in part to bwa's local
+8. accuracy without trimming -- the accuracy is due in part to bwa's local
    alignment. This is something that is not supported in bismark and means that
    we can achieve very good accuracy without performing additional trimming
    which would result in additional disk-usage and processing time.
@@ -150,8 +147,15 @@ yes &    last & 559.04 & 34.53 & real \\
 
 \section{Comparison On Simulated Data}
 Paired-end, 100-base reads were simulated using the tool \emph{Sherman} (http://www.bioinformatics.babraham.ac.uk/projects/sherman/) with 95\% of the reads simulated from mm10 and 5\% of the reads from \emph{E. coli}. 
-Reads were aligned with the parameters in Supplemental Table 1. Reads from \emph{E. coli} aligning to \emph{mm10}
-were considered as off-target reads.
+Exact parameters sent to Sherman are here:
+https://github.com/brentp/bwa-meth/blob/2007cfbef70eea12f5a1f2000ce59f19c4ec027a/compare/src/gen-simulated.sh
+
+Note that these reads have no insertions or deletions. We simulated the 
+\emph{E. coli} reads to be 98\% unmethylated and we used a per-base error
+rate of 0.2\% for the simulations.
+
+Reads were aligned with the parameters in Supplemental Table 1. Reads from 
+\emph{E. coli} aligning to \emph{mm10} were considered as off-target reads.
 Supplemental Figure 3 below shows the result for these simulations.
 
 
@@ -217,7 +221,7 @@ considering only the strand targetted by our capture protocol.
     by the capture method.}\label{suppfig:05}
 \end{figure}
 
-This is implemented in \textit{bwa-meth} view the \emph{--set-as-failed}
+This is implemented in \textit{bwa-meth} via the \emph{--set-as-failed}
 flag so that reads mapping to a given strand are given the SAM flag
 indicating that they failed vendor quality control checks. Invocation
 would look like this:
@@ -240,9 +244,11 @@ difference is very small for \textit{bwa-meth}.
 \section{\textit{bwa-meth} Installation And Requirements}
 
 \textit{Bwa-meth} depends on samtools and a single python library, \textit{toolshed}.
-The latter can be installed by running \emph{python setup.py install} from the main
+The latter can be installed by running \emph{sudo python setup.py install} from the main
 directory of the \textit{bwa-meth} project. Samtools is a C library installed on most
 systems and available at https://github.com/samtools/samtools.
+Further installation instructions are available in the \textit{bwa-meth} README at
+https://github.com/brentp/bwa-meth/
 
 For tabulation of methylation by CpG, \emph{Bis-SNP} \cite{bissnp} is required.
 The java .jar file is available from: http://sourceforge.net/projects/bissnp/files/
