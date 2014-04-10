@@ -7,12 +7,17 @@ from collections import defaultdict
 import numpy as np
 from itertools import cycle
 import pylab as pl
+import seaborn
+
+colors = cycle(seaborn.color_palette('Set1', 8))
+
 
 BASES = False
 
 def name(bam):
-    #return op.basename(bam).rsplit(".", 1)[0].split("-")[0]
+    return op.basename(bam).rsplit(".", 1)[0].split("-")[0]
     return op.basename(bam).rsplit(".", 1)[0].split("-")[0] + ("-trim" if "trim" in bam else "")
+    return op.dirname(bam)
 
 def count_bases(cigar, patt=re.compile("\d+[IM]")):
     return sum(int(p[:-1]) for p in patt.findall(cigar))
@@ -25,7 +30,7 @@ def count_on_off(bam, flags, pad, bases=BASES):
     off_count = [0] * 256
     rcounts = defaultdict(int)
 
-    posn = re.compile(".*_(.+):(\d+)-(\d+)")
+    posn = re.compile(".*?_(.+):(\d+)-(\d+)")
 
     # chr1b:3001315:+__chr1b:3001467:-        99      chr1    3001316 60 100M 
     print >>sys.stderr, bam
@@ -74,28 +79,33 @@ def main(bams, reads=None, flags=FLAGS, pad=2002):
     if not reads.isdigit():
         reads = 2 * float(nopen("|bioawk -c fastx 'END { print NR }' %s" % reads).next())
     else:
-        reads = 2 * int(reads)
+        reads = 2.0 * int(reads)
 
     if any('trim' in b for b in bams):
         assert all('trim' in b for b in bams), [b for b in bams if not 'trim'
                 in b]
     counts = {}
-    colors = cycle('rgbkmy')
+    names, pts = [], []
     for bam in bams:
         counts[bam] = count_on_off(bam, flags, pad)
 
         denom = float(reads)
         # multiply by 100 bases per read.
         if BASES: denom *= 100.
+        color = next(colors)
 
         symbol = 'o' if len(set(counts[bam][0])) < 3 else '.'
-        pl.plot(counts[bam][0][1:] / denom,
+        p, = pl.plot(counts[bam][0][1:] / denom,
                 counts[bam][1][1:] / denom,
-                '%s%s' % (colors.next(), symbol), label=name(bam))
-
+                color=color,
+                mec=color,
+                mfc=color,
+                marker=symbol, label=name(bam))
+        pts.append(p)
+        names.append(name(bam))
     pl.xlabel('off target')
     pl.ylabel('on target')
-    pl.legend(loc='lower right')
+    pl.legend(pts, names, loc='lower right')
     pl.xlim(xmin=0)
     pl.ylim(ymin=0)
     print >>sys.stderr, reads
