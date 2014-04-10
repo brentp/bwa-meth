@@ -12,8 +12,10 @@ You can get these from (must use browser, not wget)
 
 You can then generate the trimmed versions as:
 
-    bash src/trim.sh data/real_R{1,2}.fastq.gz 
-    bash src/trim.sh data/sim_R{1,2}.fastq.gz 
+    bash src/trim.sh data/real_R{1,2}.fastq.gz 15
+    bash src/trim.sh data/sim_R{1,2}.fastq.gz 20
+
+Where the number indicates the threshold.
 
 
 Simulated
