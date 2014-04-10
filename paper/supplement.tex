@@ -82,8 +82,8 @@
 \caption{Methods Compared}
 {\begin{tabular}{lll}\\\toprule
 software & version & arguments\\\midrule
-bismark (bowtie1) & 0.10.1 & --gzip --bam -n 2 -l 24\\
-bismark (bowtie2) & 0.10.1 & --gzip --bam -N 1 --score\_min L,-0.4,-0.5\\ 
+bismark (bowtie1) & 0.11.1 & --gzip --bam -n 2 -l 24\\
+bismark (bowtie2) & 0.11.1 & --gzip --bam -N 1 --score\_min L,-0.4,-0.5\\ 
 bsmap & 2.74 & bsmap -v3 -m0 -x1000 -S42 -n0 -s12 -I1\\
 bsmooth & fb3f7ef & --very-sensitive\\
 bison & 0.3.0 & --directional --very-sensitive-local -N 1\\
@@ -149,8 +149,9 @@ yes &    last & 559.04 & 34.53 & real \\
 \end{table}
 
 \section{Comparison On Simulated Data}
-Paired-end, 100-base reads were simulated using the tool \emph{Sherman} (http://www.bioinformatics.babraham.ac.uk/projects/sherman/) and aligned using the
-same parameters as for Figure 1 for the main paper.
+Paired-end, 100-base reads were simulated using the tool \emph{Sherman} (http://www.bioinformatics.babraham.ac.uk/projects/sherman/) with 95\% of the reads simulated from mm10 and 5\% of the reads from \emph{E. coli}. 
+Reads were aligned with the parameters in Supplemental Table 1. Reads from \emph{E. coli} aligning to \emph{mm10}
+were considered as off-target reads.
 Supplemental Figure 3 below shows the result for these simulations.
 
 
