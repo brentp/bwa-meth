@@ -1,12 +1,13 @@
 import itertools as it
 import sys
+import gzip
 
 
 fh1 = open(sys.argv[1])
 fh2 = open(sys.argv[2])
 
-out1 = open('sim_R1.fastq', 'w')
-out2 = open('sim_R2.fastq', 'w')
+out1 = gzip.open('../dnemsim_R1.fastq.gz', 'w')
+out2 = gzip.open('../dnemsim_R2.fastq.gz', 'w')
 
 it1 = it.izip(*[fh1] * 4)
 it2 = it.izip(*[fh2] * 4)
