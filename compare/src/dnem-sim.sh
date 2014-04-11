@@ -10,7 +10,7 @@ R2=$H/data/real_R2.fastq.gz
 
 mkdir -p data/dnemsim/
 cd data/dnemsim
-
+<<DONE
 rm -f ./*
 fasta-methyl-sim $REF > mm10.meth.fa
 fasta-polymorph $DNM/snp137Common.txt.gz mm10.meth.fa mm10.meth.fa > mm10.poly.fa
@@ -20,5 +20,6 @@ fasta-bisulf-sim sim_R1.fa > sim.R1.bs.fa
 fasta-bisulf-sim sim_R2.fa > sim.R2.bs.fa
 fastq-sim sim.R1.bs.fa $R1 | awk 'NR % 4 == 1 { gsub(/ /, ":"); print  }(NR % 4 != 1)' > sim_R1_bs.fastq
 fastq-sim sim.R2.bs.fa $R2 | awk 'NR % 4 == 1 { gsub(/ /, ":"); print  }(NR % 4 != 1)' > sim_R2_bs.fastq
+DONE
 
 python ../../src/fix-names.py sim_R1_bs.fastq sim_R2_bs.fastq
