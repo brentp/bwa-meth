@@ -294,10 +294,9 @@ def as_bam(pfile, fa, prefix, calmd=False, set_as_failed=None):
         for aln in handle_reads(pair_list, set_as_failed):
             out.write(str(aln) + '\n')
 
-    p.stdin.flush()
+    p.stdin.close()
     p.stdout.flush()
-    p.communicate()
-    out.close()
+    assert p.wait() == 0
     for cmd in cmds[1:]:
         sys.stderr.write("running: %s\n" % cmd.strip())
         assert check_call(cmd.strip(), shell=True) == 0
