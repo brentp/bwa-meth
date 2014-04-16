@@ -88,6 +88,14 @@ And:
 
     $ python src/sim-roc.py --reads 1000000 results/trim/*-sim.bam results/trim//bsmooth/bsmooth-sim.bam results/trim/bison-sim/sim_R1.trim.bam > sim.trim.quals.txt 
 
+And:
+
+    $ python src/sim-roc.py --reads 1000000 results/trim/*-noerrorsim.bam results/trim//bsmooth/bsmooth-noerrorsim.bam results/trim/bison-noerrorsim/noerrorsim_R1.trim.bam > noerrorsim.trim.quals.txt 
+
+And:
+
+    $ python src/sim-roc.py --reads 1000000 results/*-noerrorsim.bam results/bsmooth/bsmooth-noerrorsim.bam results/bison-noerrorsim/noerrorsim_R1.bam > noerrorsim.quals.txt 
+
 This will make a plot with matplotlib that's not very pretty. One can then create
 a nice ggplot, plot with:
 
