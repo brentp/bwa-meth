@@ -38,6 +38,7 @@ p = ggplot(df, aes(x=off, y=on, by=method)) +
          scale_shape(solid = FALSE) 
 p = p + ylab("% Reads On Target")
 p = p + xlab("% Reads Off Target")
+p = p + scale_color_brewer(palette="Set1")
 if(any(grep("sim", args))){
     p = p + xlim(xmin=0, xmax=1.5)
     p = p + ylim(ymin=65, ymax=92)
