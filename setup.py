@@ -22,7 +22,7 @@ def get_version(path):
 setup(name='bwameth',
       version=get_version("bwameth.py"),
       description="align BS-Seq reads with bwa mem",
-      packages=[''],
+      py_modules=['bwameth'],
       author="Brent Pedersen",
       author_email="bpederse@gmail.com",
       license="MIT",
