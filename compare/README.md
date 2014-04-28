@@ -112,7 +112,7 @@ For real reads:
         --reads data/real_R1.fastq.gz \ # this is to get the number of input reads
         results/*-real.bam
 
-Both real and simulated data can also be assesed after trimming.
+Both real and simulated data can also be after trimming.
 BAMs from trimmed input appear in results/trim/
 
 Note
