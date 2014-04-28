@@ -118,7 +118,7 @@ directly to a BAM file that is usable even by those tools that require
 coordinate-sorted alignments and read-groups. Since it consists
 of fewer than 600 lines of code and runs
 quickly, it can be used as a platform to test other optimizations. For example
-in Supplemental Figure 5, we show a feature that further reduces the
+in Supplemental Figure 7, we show a feature that further reduces the
 number of off-target reads by considering only the single strand targeted by
 the SureSelect protocol.
 
@@ -152,14 +152,16 @@ of off-target reads, but Last can provide better control over the number
 of off-target reads. On trimmed data, \textit{bwa-meth}, Last, Bison and
 Bsmooth all perform similarly with Bison allowing very good control
 over the number off-target reads (Supplement Figure 2).
-Only Last and \textit{bwa-meth} are relatively unaffected by quality-trimming.
+Only Last, GSNAP, and \textit{bwa-meth} are relatively unaffected by quality-trimming.
 
 Bismark performance varies depending on whether it uses bowtie version
 1 or 2 for the backend but in either case, (as with all of the bowtie-backed
 aligners) it performs better with trimmed reads.
 
-Similar comparisons are shown in Supplemental Figures 2
-for trimmed data and for simulated data in Supplemental Figures 3 and 4.
+A similar comparison is shown in Supplemental Figure 2 for trimmed data.
+We also show the ROC figures for simulated data with errors in Supplemental
+Figures 3 (original) and 4 (trimmed) and without errors in Supplemental 
+Figures 5 and 6.
 \textit{Bwa-meth} does out-perform all aligners for simulated data.
 
 \subsection{Computational Resources}

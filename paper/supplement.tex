@@ -152,11 +152,11 @@ Reads were aligned with the parameters in Supplemental Table 1.
 Reads from \emph{E. coli} aligning to \emph{mm10} were considered as
 off-target reads. The Y-axis in the plot is the percent of the \emph{mm10}
 reads. Exact parameters sent to Sherman are here:
-https://github.com/brentp/bwa-meth/blob/2007cfbef70eea12f5a1f2000ce59f19c4ec027a/compare/src/gen-simulated.sh
+https://github.com/brentp/bwa-meth/blob/master/compare/src/gen-simulated.sh
 
 Note that these reads have no insertions or deletions. We simulated the 
 \emph{E. coli} reads to be 98\% unmethylated and we used a per-base error
-rate of 0.2\% for the simulations.
+rate of 1\% for the simulations.
 
 Supplemental Figure 3 below shows the result for these simulations.
 
@@ -213,18 +213,83 @@ yes &    last & 113.80 & 25.90 & sim \\
     \end{tabular}
 \end{table}
 
-\subsection{Improved Accuracy for Stranded Capture Experiments}
+\section{Comparison On Error-Free Simulated Data}
+
+Paired-end, error-free 100-base reads were simulated as above but
+without contamination or errors.
+Exact parameters sent to Sherman are here:
+https://github.com/brentp/bwa-meth/blob/master/compare/src/gen-simulated.sh
+
+Supplemental Figure 5 below shows the result for these simulations.
+    
+\begin{figure}[H]%figure5
+    \centerline{\includegraphics[width=125mm]{noerrorsim-quals.eps}}
+    \caption{Percent of paired-end, \emph{simulated} 100-base reads on (y) and off (x)
+    target for the tested aligners. Aligners that report mapping quality are shown as
+    connected dots for each quality cut-off. Reads are limited to those considered as
+    primary, mapped alignments by the aligner.
+}\label{suppfig:05}
+\end{figure}
+
+Supplemental Figure 6 below shows the result for trimmed and simulated reads.
+Trimming removes some read-pairs if one or both reads had low-quality. We
+report the percent of reads aligned relative to the original, 
+un-trimmed number from \emph{mm10} since we are interested in the overall
+mapping rate. 
+ 
+\begin{figure}[H]%figure6
+    \centerline{\includegraphics[width=125mm]{noerrorsim-trim-quals.eps}}
+    \caption{Percent of paired-end, \emph{trimmed}, \emph{simulated} 100-base reads on (y) and off (x) target for the tested aligners. Aligners that report mapping quality are shown as connected dots for each quality cut-off. Reads are limited to those considered as primary, mapped alignments by the aligner.
+}\label{suppfig:06}
+\end{figure}
+
+
+
+\subsection{Resources}
+
+%http://truben.no/latex/table/
+\begin{table}[H]
+    \centering
+    \caption{Resources on error-free simulated data
+(programs run with more processes will use more memory)}
+    \begin{tabular}{lllll} \hline
+    trimmed & program & CPU time(min) & mem(GB) & dataset \\ \hline
+
+no &    bis1 & 61.05 & 8.27 & error-free \\
+no &    bis2 & 289.67 & 9.46 & error-free \\
+no &    bison & 179.17 & 9.27 & error-free \\
+no &    bsmap & 66.03 & 22.72 & error-free \\
+no &    bsmooth & 492.62 & 9.37 & error-free \\
+no &    bwa & 170.66 & 21.11 & error-free \\
+no &    gsnap & 48.36 & 10.25 & error-free \\
+no &    last & 214.68 & 25.90 & error-free \\
+
+yes &    bis1 & 64.32 & 8.27 & error-free \\
+yes &    bis2 & 245.42 & 9.48 & error-free \\
+yes &    bison & 184.55 & 9.10 & error-free \\
+yes &    bsmap & 67.68 & 22.94 & error-free \\
+yes &    bsmooth & 481.99 & 9.38 & error-free \\
+yes &    bwa & 173.93 & 21.43 & error-free \\
+yes &    gsnap & 51.11 & 11.69 & error-free \\
+yes &    last & 138.03 & 25.90 & error-free \\
+
+    \end{tabular}
+\end{table}
+
+
+
+\section{Improved Accuracy for Stranded Capture Experiments}
 
 Below we show a reduction in the percent of off-target reads by
 considering only the strand targetted by our capture protocol.
 
-\begin{figure}[H]%figure5
+\begin{figure}[H]%figure7
     \centerline{\includegraphics[width=86mm]{real-bwa-strand.eps}}
     \caption{For a capture experiment that targets only one strand, we can
     improve accuracy by considering only reads that map to that strand.
     Here, we show the effect from the original bwameth alignments as shown
     in Figure 1 compared to the alignments restricted to the strand targeted
-    by the capture method.}\label{suppfig:05}
+    by the capture method.}\label{suppfig:07}
 \end{figure}
 
 This is implemented in \textit{bwa-meth} via the \emph{--set-as-failed}
