@@ -53,7 +53,7 @@
    GATK will accept them as is.
 
 5. simplicity -- we have carefully designed bwa-meth to be quite simple and
-   the code readable so that enhancements are simple. For example, see \#7.
+   the code readable so that enhancements are simple. For example, see \#6.
 
 6. strand-specificity -- Devon Ryan,
    the author of Bison, noted that many capture methods target only the reverse
@@ -309,7 +309,7 @@ as failed.
 
 
 \section{Mapping and Trimming}
-We note that rimming improves accuracy for most aligners but the
+We note that trimming improves accuracy for most aligners but the
 difference is very small for \textit{bwa-meth}.
 
 \section{\textit{bwa-meth} Installation And Requirements}
@@ -328,7 +328,7 @@ For CNV detection from BS-Seq data, the R package \emph{cn.mops} \cite{cnmops} i
 It is available
 from bioconductor \cite{bioconductor} at: http://bioconductor.org/packages/devel/bioc/html/cn.mops.html
 \section{Additional Features}
-\textit{Bwa-meth} and GSNAP are the only program that outputs a BAM file that passes picard's ValidateSam without errors.
+\textit{Bwa-meth} and GSNAP are the only programs that output a BAM file that passes picard's ValidateSam without errors.
 Last does not report the proper pair information in all cases and none of the other aligners add a read-group.
 For the comparison, we added sorting and forced SAM output by the other aligners regardless of their default.
 \textit{Bwa-meth} outputs a read-group for each sample by default and allows that to be customized.
