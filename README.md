@@ -19,7 +19,7 @@ mapping quality cutoff for alingers that use it.
 This image is on real reads and represents an attempt to find good parameters
 for all aligners tested.
 
-![Untrimmed reads comparison](https://gist.githubusercontent.com/brentp/bf7d3c3d3f23cc319ed8/raw/a6315bf0fdb22cc10e5ff43b189a8392ed1fe4e1/real.gif)
+![Untrimmed reads comparison](https://gist.githubusercontent.com/brentp/bf7d3c3d3f23cc319ed8/raw/d5f1ebcc53b924a05a5980159bfcb97494ec34f2/real.gif)
 
 Note that *bwa-meth* and *Last* perform well without trimming.
 
