@@ -25,13 +25,12 @@ def counter(fname):
 from toolshed import nopen, pmap
 
 def count_both(bam, regions, flags):
-    if not "last" in bam: flags += " -f0x2"
+    #if not "last" in bam: flags += " -f0x2"
     off, on = OFF.format(**locals()), ON.format(**locals())
     return bam, map(counter, [off, on])
 
 def count_bam(bam, flags):
     return int(next(nopen("|samtools view -c {flags} {bam}".format(**locals()))))
-
 
 ON  = "| samtools view {bam} -L {regions} {flags}"
 OFF = "| bedtools intersect -ubam -abam {bam} -b {regions} -wa -v \

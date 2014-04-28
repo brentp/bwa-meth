@@ -11,7 +11,6 @@ import seaborn
 
 colors = cycle(seaborn.color_palette('Set1', 8))
 
-
 BASES = False
 
 def name(bam):
@@ -24,7 +23,7 @@ def count_bases(cigar, patt=re.compile("\d+[IM]")):
 
 def count_on_off(bam, flags, pad, bases=BASES):
 
-    if not "last" in bam: flags = flags + " -f 0x2"
+    #if not "last" in bam: flags = flags + " -f 0x2"
 
     on_count = [0] * 256
     off_count = [0] * 256
@@ -40,8 +39,6 @@ def count_on_off(bam, flags, pad, bases=BASES):
         if toks[0].endswith(("_R1", "_R2")):
             toks[0] = toks[0][:-3]
 
-        if "random" in toks[0]: continue
-        if "chrUn" in toks[0]: continue
         cigar = toks[5]
 
         qual = int(toks[4])
@@ -72,10 +69,8 @@ def count_on_off(bam, flags, pad, bases=BASES):
     off_count = np.cumsum(off_count[::-1])[::-1]
     return off_count, on_count
 
-
-
 FLAGS="-F%i" % (0x4 | 0x100 | 0x200)
-def main(bams, reads=None, flags=FLAGS, pad=2002):
+def main(bams, reads=None, flags=FLAGS, pad=12002):
     if not reads.isdigit():
         reads = 2 * float(nopen("|bioawk -c fastx 'END { print NR }' %s" % reads).next())
     else:
@@ -86,17 +81,33 @@ def main(bams, reads=None, flags=FLAGS, pad=2002):
                 in b]
     counts = {}
     names, pts = [], []
+
+    denom = float(reads)
+    if BASES: denom *= 100.
     for bam in bams:
         counts[bam] = count_on_off(bam, flags, pad)
 
-        denom = float(reads)
+
+    out = sys.stdout
+    print >>out, "qual\tmethod\toff\ton"
+
+    for qual in range(0, 256):
+        for b in bams:
+            print >>out, "{qual}\t{bam}\t{off}\t{on}".format(
+            qual=qual, bam=name(b),
+            off=counts[b][0][qual] / denom,
+            on=counts[b][1][qual] / denom)
+    print >>sys.stderr, "wrote", out.name
+
+    for bam in bams:
+
         # multiply by 100 bases per read.
-        if BASES: denom *= 100.
         color = next(colors)
 
         symbol = 'o' if len(set(counts[bam][0])) < 3 else '.'
-        p, = pl.plot(counts[bam][0][1:] / denom,
-                counts[bam][1][1:] / denom,
+        nmax = max(i for i, v in enumerate(counts[bam][1]) if v > 0)
+        p, = pl.plot(counts[bam][0][1:nmax + 1] / denom,
+                counts[bam][1][1:nmax + 1] / denom,
                 color=color,
                 mec=color,
                 mfc=color,
@@ -109,18 +120,8 @@ def main(bams, reads=None, flags=FLAGS, pad=2002):
     pl.xlim(xmin=0)
     pl.ylim(ymin=0)
     print >>sys.stderr, reads
+
     pl.show()
-
-    out = sys.stdout
-    print >>out, "qual\tmethod\toff\ton"
-
-    for qual in range(0, 256):
-        for b in bams:
-            print >>out, "{qual}\t{bam}\t{off}\t{on}".format(
-            qual=qual, bam=name(b),
-            off=counts[b][0][qual] / reads,
-            on=counts[b][1][qual] / reads)
-    print >>sys.stderr, "wrote", out.name
 
 if __name__ == "__main__":
     import argparse
