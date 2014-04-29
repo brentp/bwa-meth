@@ -1,4 +1,5 @@
 import ez_setup
+import sys
 ez_setup.use_setuptools()
 from setuptools import setup
 
@@ -18,6 +19,9 @@ def get_version(path):
     except StopIteration:
         raise ValueError("version could not be located")
 
+install_requires = ['toolshed']
+if sys.version_info[:2] < (2, 7):
+    install_requires.extend(["argparse", "ordereddict"])
 
 setup(name='bwameth',
       version=get_version("bwameth.py"),
@@ -26,8 +30,12 @@ setup(name='bwameth',
       author="Brent Pedersen",
       author_email="bpederse@gmail.com",
       license="MIT",
-      install_requires=["toolshed"],
+      install_requires=install_requires,
       long_description=open('README.md').read(),
-      classifiers=["Topic :: Scientific/Engineering :: Bio-Informatics"],
+      classifiers=[
+      'Topic :: Scientific/Engineering :: Bio-Informatics',
+      'Programming Language :: Python :: 2',
+      'Programming Language :: Python :: 3'
+      ],
       scripts=['bwameth.py']
-  )
+)
