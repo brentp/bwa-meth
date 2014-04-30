@@ -14,6 +14,7 @@ and both are streamed directly to the aligner without a temporary file.
 The output is a corrected, sorted, indexed BAM.
 """
 from __future__ import print_function
+import tempfile
 import sys
 import os
 import os.path as op
@@ -396,7 +397,6 @@ res = calcIntegerCopyNumbers(res)
 df = as.data.frame(cnvs(res))
 write.table(df, row.names=FALSE, quote=FALSE, sep="\t")
 """
-    import tempfile
     with tempfile.NamedTemporaryFile(delete=True) as rfh:
         rfh.write(r_script + '\n')
         rfh.flush()
@@ -530,6 +530,12 @@ def tabulate_main(args):
     with open(a.prefix + "command.sh", 'w') as fh:
         fh.write(cmd)
 
+def convert_fqs(fqs):
+    script = __file__
+    return "'<%s %s c2t %s %s'" % (sys.executable, script, fqs[0],
+               fqs[1] if len(fqs) > 1
+                      else ','.join(['NA'] * len(fqs[0].split(","))))
+
 def main(args=sys.argv[1:]):
 
     if len(args) > 0 and args[0] == "index":
@@ -566,16 +572,25 @@ def main(args=sys.argv[1:]):
 
     args = p.parse_args(args)
     # for the 2nd file. use G => A and bwa's support for streaming.
-    script = __file__
-    conv_fqs = "'<%s %s c2t %s %s'" % (sys.executable, script, args.fastqs[0],
-               args.fastqs[1] if len(args.fastqs) > 1
-                              else ','.join(['NA'] * len(args.fastqs[0].split(","))))
+    conv_fqs_cmd = convert_fqs(args.fastqs)
 
-    bwa_mem(args.reference, conv_fqs, "", prefix=args.prefix,
+    bwa_mem(args.reference, conv_fqs_cmd, "", prefix=args.prefix,
              threads=args.threads, rg=args.read_group or
              rname(*args.fastqs), calmd=args.calmd,
              paired=len(args.fastqs) == 2,
              set_as_failed=args.set_as_failed)
+
+
+def test():
+    ref = "example/ref.fa"
+    bwa_index(ref)
+    with tempfile.NamedTemporaryFile(delete=True) as rfh:
+        prefix=rfh.name
+        bwa_mem(ref, convert_fqs(("example/t_R1.fastq.gz",
+            "example/t_R2.fastq.gz")), "",
+            prefix=rfh.name, threads=2, rg="ex", paired=True)
+        assert op.exists("%s.bam" % prefix)
+        assert op.exists("%s.bam.bai" % prefix)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
