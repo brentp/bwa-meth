@@ -287,7 +287,9 @@ def as_bam(pfile, fa, prefix, calmd=False, set_as_failed=None):
     for toks in bam_iter:
         if not toks[0].startswith("@"): break
         handle_header(toks, out)
-
+    else:
+        sys.stderr.flush()
+        raise Exception("bad or empty fastqs")
     bam_iter2 = chain([toks], bam_iter)
     for read_name, pair_list in groupby(bam_iter2, itemgetter(0)):
         pair_list = [Bam(toks) for toks in pair_list]
