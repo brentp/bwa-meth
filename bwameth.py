@@ -283,7 +283,8 @@ def as_bam(pfile, fa, prefix, calmd=False, set_as_failed=None):
 
     p = nopen("|" + cmds[0], 'w')
     out = p.stdin
-    bam_iter = reader("%s" % (pfile,), header=False)
+    #out = sys.stdout # useful for debugging
+    bam_iter = reader("%s" % (pfile,), header=False, quotechar=None)
     for toks in bam_iter:
         if not toks[0].startswith("@"): break
         handle_header(toks, out)
@@ -297,8 +298,9 @@ def as_bam(pfile, fa, prefix, calmd=False, set_as_failed=None):
         for aln in handle_reads(pair_list, set_as_failed):
             out.write(str(aln) + '\n')
 
-    p.stdin.close()
+    p.stdin.flush()
     p.stdout.flush()
+    p.stdin.close()
     assert p.wait() == 0
     for cmd in cmds[1:]:
         sys.stderr.write("running: %s\n" % cmd.strip())
@@ -324,6 +326,7 @@ def handle_reads(alns, set_as_failed):
 
     for aln in alns:
         orig_seq = aln.original_seq
+        assert len(aln.seq) == len(aln.qual), aln.read
         # don't need this any more.
         aln.other = [x for x in aln.other if not x.startswith('YS:Z')]
         if aln.chrom == "*":  # chrom
