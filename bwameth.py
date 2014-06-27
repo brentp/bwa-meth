@@ -138,7 +138,11 @@ def convert_fasta(ref_fasta, just_name=False):
                 fh.write(line + '\n')
         fh.close()
     except:
-        fh.close(); os.unlink(out_fa)
+        try:
+            fh.close()
+        except UnboundLocalError:
+            pass
+        os.unlink(out_fa)
         raise
     return out_fa
 
