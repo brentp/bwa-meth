@@ -471,9 +471,8 @@ def tabulate_main(args):
         --trim_5_end_bp {trim5}
         --trim_3_end_bp {trim3}
         -vfn1 {prefix}meth.vcf -vfn2 {prefix}snp.vcf
-        --non_directional_protocol
         -mbq 12
-        -minConv 0
+        -minConv 1
         -toCoverage 1000
         -mmq {mapq} {dbsnp} {region}
         -nt {threads}""".format(
