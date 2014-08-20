@@ -27,7 +27,8 @@ def check_bias(bam, reference, n_check=2e6, min_map_q=20):
 
     n_to_check = sys.maxint if n_check is None else n_check
     fh = open(opath, "w")
-    for toks in reader("|samtools view -F4 {bam}".format(bam=bam), header=False):
+    for toks in reader("|samtools view -F4 {bam}".format(bam=bam),
+                       header=False, quotechar=None):
         if int(toks[4]) < min_map_q: continue
         # cheat and keep only perfectly matched reads (only 'M' in cigar)
         if ['M'] != [x for x in toks[5] if not x.isdigit()]: continue
