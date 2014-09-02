@@ -64,15 +64,15 @@ def tabulate_main(args):
     if a.region:
         a.region = ("-l " if op.exists(a.region) else "-r ") + a.region
     ff = 0
-    for flag in a.ff: ff |= flag
+    for flag in set(a.ff): ff |= flag
     rf = 0
-    for flag in a.rf: rf |= flag
+    for flag in set(a.rf): rf |= flag
     cmd = ("|samtools mpileup --rf {rf} --ff {ff} -Of {reference} {region}"
            " -d100000 -BQ {base_q} -q {map_q} {bams}")
 
     cmd = cmd.format(reference=a.reference, map_q=a.map_q, base_q=a.base_q,
                      bams=" ".join(a.bams), region=a.region, rf=rf, ff=ff)
-    print >>sys.stderr, "generating pileup with command:", cmd
+    sys.stderr.write("generating pileup with command: %s\n" % cmd)
     samples = [op.basename(b)[:-4] for b in a.bams]
     tabulate_methylation(cmd, a.reference, samples, a.g_only, a.skip_left,
             a.read_length - a.skip_right)
