@@ -23,16 +23,19 @@ def get_context(seq5, forward):
     >>> get_context('GACGG', True)
     'CG+'                  
     """
-    if forward:
-        assert seq5[2] == "C", seq5
-        if seq5[3] == "G": return "CG+"
-        if seq5[4] == "G": return "CHG+"
-        return "CHH+"
-    else: # reverse complement
-        assert seq5[2] == "G", seq5
-        if seq5[1] == "C": return "CG-"
-        if seq5[0] == "C": return "CHG-"
-        return "CHH-"
+    try:
+        if forward:
+            assert seq5[2] == "C", seq5
+            if seq5[3] == "G": return "CG+"
+            if seq5[4] == "G": return "CHG+"
+            return "CHH+"
+        else: # reverse complement
+            assert seq5[2] == "G", seq5
+            if seq5[1] == "C": return "CG-"
+            if seq5[0] == "C": return "CHG-"
+            return "CHH-"
+    except IndexError: # ends of chrom
+        return "CHH" + ["-", "+"][int(forward)]
 
 def tabulate_main(args):
     __doc__ = """
