@@ -1,3 +1,4 @@
+from __future__ import division
 import os
 import os.path as op
 import sys
@@ -36,18 +37,20 @@ ON  = "| samtools view {bam} -L {regions} {flags}"
 OFF = "| bedtools intersect -ubam -abam {bam} -b {regions} -wa -v \
        | samtools view - {flags}"
 
-def main(regions, bams, reads=None, flags="-F%i" % (0x100 | 0x4 | 0x200),
+def main(regions, bams, reads=None, flags="-F%i" % (0x100 | 0x4 | 0x200 | 0x400),
         pad=100):
     r2 = open(tempfile.mktemp(), 'w')
     for toks in reader(regions, header=False):
         if toks[0][0] == "@" or not (toks[1] + toks[2]).isdigit(): continue
-        toks[1] = str(int(toks[1]) - pad)
+        toks[1] = str(max(0, int(toks[1]) - pad))
         toks[2] = str(int(toks[2]) + pad)
         print >>r2, "\t".join(toks)
     r2.flush()
     regions = r2.name
-
-    if reads != "bam":
+    print reads
+    if reads.isdigit():
+        reads = int(reads)
+    elif reads != "bam":
         reads = int(nopen("|bioawk -c fastx 'END { print NR }' %s" % reads).next()) * 2.0
 
     counts = {}
