@@ -28,3 +28,6 @@ python src/sim-roc.py \
     results/trim/bison-sim/sim_R1.trim.bam \
     results/trim/bsmooth/bsmooth-sim.bam \
     > sim-trim-quals.txt
+
+# make table of time and mem from logs
+python src/parse-time-mem.py logs/*-{sim,real}.out
