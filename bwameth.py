@@ -437,12 +437,17 @@ def tabulate_main(args):
             " percent methylation. Available variables in addition to those"
             " are 'end' and 'ctx', where ctx is the  cpg context (CG/CHH/CHG).",
             default="{chrom}\t{start}\t{start}\t{pct}\t{cs}\t{ts}")
-    p.add_argument("--context", choices=("all", "CG", "CG-strict"),
+    group = p.add_mutually_exclusive_group()
+    group.add_argument("--context", choices=("all", "CG", "CG-strict"),
             default="CG-strict", help="which methylation context to output to the"
             "summary (BED) file. Default 'CG-strict' follows bissnp and only"
             " pulls those sites that are CG in all samples (no CC samples,"
             " for example) 'CG' will pull anything that is CG in any sample:"
-            " (MG,SG, YG, CR, CK). 'all' will pull all contexts")
+            " (MG,SG, YG, CR, CK). 'all' will pull all contexts. Automatically"
+            " set to 'all' when '--nome' is specified.")
+    group.add_argument("--nome", action='store_true', help="Whether the assay performed"
+            " is NOMe and therefore both GpC and CpG sites should be output."
+            " Implies '--context all'")
     p.add_argument("bams", nargs="+")
 
     a = p.parse_args(args)
@@ -462,6 +467,8 @@ def tabulate_main(args):
         else:
             name = a.region.replace(":", "-")
         a.prefix += name + "."
+    if a.nome:
+        a.context = 'all'
 
     cmd = """\
     java -Xmx24g -jar {bissnp}
@@ -474,7 +481,7 @@ def tabulate_main(args):
         -mbq 12
         -minConv 1
         -toCoverage 1000
-        -mmq {mapq} {dbsnp} {region}
+        -mmq {mapq} {dbsnp} {region} {nome}
         -nt {threads}""".format(
             threads=a.threads,
             dbsnp=("--dbsnp " + a.dbsnp) if a.dbsnp else "",
@@ -485,7 +492,9 @@ def tabulate_main(args):
             prefix=a.prefix,
             reference=a.reference,
             mapq=a.map_q,
-            bams=" -I ".join(a.bams)).replace("\n", " \\\n")
+            bams=" -I ".join(a.bams),
+            nome=("-sm GM -out_modes EMIT_VARIANT_AND_CYTOSINES -C WCG,2 -C GCH,2") if a.nome else ""
+            ).replace("\n", " \\\n")
     sys.stderr.write(cmd + '\n')
     if not "--format" in args and a.context == "all":
         a.format = a.format.rstrip('\n') + "\t{ctx}"
