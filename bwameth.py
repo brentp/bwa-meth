@@ -84,6 +84,12 @@ def convert_reads(fq1s, fq2s, out=sys.stdout):
             for read_i, (name, seq, _, qual) in enumerate(pair):
                 if name is None: continue
                 name = name.rstrip("\r\n").split(" ")[0]
+                if name[0] != "@":
+                    sys.stderr.write("""ERROR!!!!
+ERROR!!! FASTQ conversion failed
+ERROR!!! expecting FASTQ 4-tuples, but found a record %s that doesn't start with "@"
+""" % name)
+                    sys.exit(1)
                 if name.endswith(("_R1", "_R2")):
                     name = name[:-3]
                 elif name.endswith(("/1", "/2")):
@@ -102,11 +108,10 @@ def convert_reads(fq1s, fq2s, out=sys.stdout):
                 out.write("".join((name, seq, "\n+\n", qual)))
 
     out.flush()
-    out.close()
     if lt80 > 50:
         sys.stderr.write("WARNING: %i reads with length < 80\n" % lt80)
         sys.stderr.write("       : this program is designed for long reads\n")
-
+    return 0
 
 def convert_fasta(ref_fasta, just_name=False):
     out_fa = ref_fasta + ".bwameth.c2t"
@@ -223,7 +228,12 @@ class Bam(object):
 
     @property
     def original_seq(self):
-        return next(x for x in self.other if x.startswith("YS:Z:"))[5:]
+        try:
+            return next(x for x in self.other if x.startswith("YS:Z:"))[5:]
+        except:
+            sys.stderr.write(repr(self.other) + "\n")
+            sys.stderr.write(self.read + "\n")
+            raise
 
     @property
     def ga_ct(self):
