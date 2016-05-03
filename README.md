@@ -1,7 +1,24 @@
 bwa-meth
 ========
 
-Aligns BS-Seq reads and tabulates methylation without intermediate temp files.
+Fast and accurante alignment of BS-Seq reads.
+
+## Update 2016
+
+`bwa-meth` is still among (if not *the*) best aligners for BS-Seq.
+While it is fairly stable, I will continue to support the alignment
+part of `bwa-meth`--fixing any bugs or updating as needed.
+
+There are now several (likely better) alternatives for tabulation
+and SNP calling than provided here.
+
+For tabulation, bias, and plotting, use [PileOMeth](https://github.com/dpryan79/PileOMeth)
+
+For SNP calling (a more modern BisSNP), use [biscuit](https://github.com/zwdzwd/biscuit)
+
+
+## Intro
+
 This works for single-end reads and for **paired-end reads from the
 directional protocol** (most common).
 
