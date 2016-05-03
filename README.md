@@ -10,7 +10,7 @@ While it is fairly stable, I will continue to support the alignment
 part of `bwa-meth`--fixing any bugs or updating as needed.
 
 There are now several (likely better) alternatives for tabulation
-and SNP calling than provided here.
+and SNP calling than provided here so I will not develop those further.
 
 For tabulation, bias, and plotting, use [PileOMeth](https://github.com/dpryan79/PileOMeth)
 
