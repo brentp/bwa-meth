@@ -37,7 +37,6 @@ __version__ = "0.10"
 
 def checkX(cmd):
     for p in os.environ['PATH'].split(":"):
-        print(p)
         if os.access(os.path.join(p, cmd), os.X_OK):
             break
     else:
