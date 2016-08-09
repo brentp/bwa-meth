@@ -254,7 +254,7 @@ def rname(fq1, fq2=""):
 
 
 def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None,
-            calmd=False, paired=True, set_as_failed=None, mismatch_ratio=0.08):
+            calmd=False, paired=True, set_as_failed=None, mismatch_ratio=1):
     conv_fa = convert_fasta(fa, just_name=True)
     if not is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.sa')):
         raise BWAMethException("first run bwameth.py index %s" % fa)
@@ -273,7 +273,7 @@ def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None,
     as_bam(cmd, fa, prefix, calmd, set_as_failed, mismatch_ratio)
 
 
-def as_bam(pfile, fa, prefix, calmd=False, set_as_failed=None, mismatch_ratio=0.08):
+def as_bam(pfile, fa, prefix, calmd=False, set_as_failed=None, mismatch_ratio=1):
     """
     pfile: either a file or a |process to generate sam output
     fa: the reference fasta
@@ -336,7 +336,7 @@ def handle_header(toks, out):
     out.write("\t".join(toks) + "\n")
 
 
-def handle_reads(alns, set_as_failed, mismatch_ratio=0.08):
+def handle_reads(alns, set_as_failed, mismatch_ratio=1):
 
     for aln in alns:
         orig_seq = aln.original_seq
@@ -589,7 +589,7 @@ def main(args=sys.argv[1:]):
     p = argparse.ArgumentParser(__doc__)
     p.add_argument("--reference", help="reference fasta", required=True)
     p.add_argument("-t", "--threads", type=int, default=6)
-    p.add_argument("-m", "--mismatch_ratio", type=float, default=0.08, help="Maximum ratio of mismatches to "
+    p.add_argument("-m", "--mismatch-ratio", type=float, default=1, help="Maximum ratio of mismatches to "
                                                                             "alignment length. Hits with more mismatches"
                                                                             "will be reported as qc-failed (0x200)")
     p.add_argument("-p", "--prefix", default="bwa-meth")
