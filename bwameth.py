@@ -355,14 +355,14 @@ def handle_reads(alns, set_as_failed, mismatch_ratio=1):
         assert direction in 'fr', (direction, aln)
         aln.other.append('YD:Z:' + direction)
 
-        mismatches = int(next((s for s in aln.other if "NM:i:" in s), None).split(":")[2])
-
-        if mismatches > (aln.longest_match() * mismatch_ratio):
-            aln.flag |= 0x200
-            aln.other.append('MC:Z:' + aln.chrom)
-            aln.other.append('MP:Z:' + str(aln.pos))
-            aln.chrom = "*"
-            aln.pos = 0
+        if mismatch_ratio < 1:
+            mismatches = int(next((s for s in aln.other if "NM:i:" in s), None).split(":")[2])
+            if mismatches > (aln.longest_match() * mismatch_ratio):
+                aln.flag |= 0x200
+                aln.other.append('MC:Z:' + aln.chrom)
+                aln.other.append('MP:Z:' + str(aln.pos))
+                aln.chrom = "*"
+                aln.pos = 0
 
 
         if set_as_failed == direction:
