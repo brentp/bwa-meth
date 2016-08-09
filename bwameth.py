@@ -22,7 +22,7 @@ import argparse
 from subprocess import check_call
 from operator import itemgetter
 from itertools import groupby, repeat, chain
-import reF
+import re
 
 try:
     from itertools import izip
