@@ -254,7 +254,7 @@ def rname(fq1, fq2=""):
 
 
 def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None,
-            calmd=False, paired=True, set_as_failed=None):
+            calmd=False, paired=True, set_as_failed=None, mismatch_ratio=1):
     conv_fa = convert_fasta(fa, just_name=True)
     if not is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.sa')):
         raise BWAMethException("first run bwameth.py index %s" % fa)
@@ -270,10 +270,10 @@ def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None,
     cmd += "-R '{rg}' -t {threads} {extra_args} {conv_fa} {mfq}"
     cmd = cmd.format(**locals())
     sys.stderr.write("running: %s\n" % cmd.lstrip("|"))
-    as_bam(cmd, fa, prefix, calmd, set_as_failed)
+    as_bam(cmd, fa, prefix, calmd, set_as_failed, mismatch_ratio)
 
 
-def as_bam(pfile, fa, prefix, calmd=False, set_as_failed=None):
+def as_bam(pfile, fa, prefix, calmd=False, set_as_failed=None, mismatch_ratio=1):
     """
     pfile: either a file or a |process to generate sam output
     fa: the reference fasta
@@ -309,7 +309,7 @@ def as_bam(pfile, fa, prefix, calmd=False, set_as_failed=None):
     for read_name, pair_list in groupby(bam_iter2, itemgetter(0)):
         pair_list = [Bam(toks) for toks in pair_list]
 
-        for aln in handle_reads(pair_list, set_as_failed):
+        for aln in handle_reads(pair_list, set_as_failed, mismatch_ratio):
             out.write(str(aln) + '\n')
 
     p.stdin.flush()
@@ -336,7 +336,7 @@ def handle_header(toks, out):
     out.write("\t".join(toks) + "\n")
 
 
-def handle_reads(alns, set_as_failed):
+def handle_reads(alns, set_as_failed, mismatch_ratio=1):
 
     for aln in alns:
         orig_seq = aln.original_seq
@@ -354,6 +354,16 @@ def handle_reads(alns, set_as_failed):
 
         assert direction in 'fr', (direction, aln)
         aln.other.append('YD:Z:' + direction)
+
+        if mismatch_ratio < 1:
+            mismatches = int(next((s for s in aln.other if "NM:i:" in s), None).split(":")[2])
+            if mismatches > (aln.longest_match() * mismatch_ratio):
+                aln.flag |= 0x200
+                aln.other.append('MC:Z:' + aln.chrom)
+                aln.other.append('MP:Z:' + str(aln.pos))
+                aln.chrom = "*"
+                aln.pos = 0
+
 
         if set_as_failed == direction:
             aln.flag |= 0x200
@@ -579,6 +589,9 @@ def main(args=sys.argv[1:]):
     p = argparse.ArgumentParser(__doc__)
     p.add_argument("--reference", help="reference fasta", required=True)
     p.add_argument("-t", "--threads", type=int, default=6)
+    p.add_argument("-m", "--mismatch-ratio", type=float, default=1, help="Maximum ratio of mismatches to "
+                                                                            "alignment length. Hits with more mismatches"
+                                                                            "will be reported as qc-failed (0x200)")
     p.add_argument("-p", "--prefix", default="bwa-meth")
     p.add_argument("--calmd", default=False, action="store_true")
     p.add_argument("--read-group", help="read-group to add to bam in same"
@@ -604,7 +617,8 @@ def main(args=sys.argv[1:]):
              threads=args.threads, rg=args.read_group or
              rname(*args.fastqs), calmd=args.calmd,
              paired=len(args.fastqs) == 2,
-             set_as_failed=args.set_as_failed)
+             set_as_failed=args.set_as_failed,
+             mismatch_ratio=args.mismatch_ratio)
 
 
 def test():
