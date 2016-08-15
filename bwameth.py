@@ -595,11 +595,12 @@ def main(args=sys.argv[1:]):
             "multiple sets separated by commas, e.g. ... a_R1.fastq,b_R1.fastq"
             " a_R2.fastq,b_R2.fastq note that the order must be maintained.")
 
-    args = p.parse_args(args)
+    args, pass_through_args = p.parse_known_args(args)
+
     # for the 2nd file. use G => A and bwa's support for streaming.
     conv_fqs_cmd = convert_fqs(args.fastqs)
 
-    bwa_mem(args.reference, conv_fqs_cmd, "", prefix=args.prefix,
+    bwa_mem(args.reference, conv_fqs_cmd, ' '.join(map(str, pass_through_args)), prefix=args.prefix,
              threads=args.threads, rg=args.read_group or
              rname(*args.fastqs), calmd=args.calmd,
              paired=len(args.fastqs) == 2,
