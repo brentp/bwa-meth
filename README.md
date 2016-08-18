@@ -3,6 +3,11 @@ bwa-meth
 
 Fast and accurante alignment of BS-Seq reads.
 
+## NOTE!!!
+
+As of 2016-08-18, bwa-meth now outputs sam to stdout. It is up to the user to
+convert to bam. This means that the --prefix and --calmd flags are gone.
+
 ## Update 2016
 
 `bwa-meth` is still among (if not *the*) best aligners for BS-Seq.

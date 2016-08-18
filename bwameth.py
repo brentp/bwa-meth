@@ -33,7 +33,7 @@ except ImportError: # python3
     maketrans = str.maketrans
 from toolshed import nopen, reader, is_newer_b
 
-__version__ = "0.10"
+__version__ = "0.20"
 
 def checkX(cmd):
     for p in os.environ['PATH'].split(":"):
@@ -253,8 +253,8 @@ def rname(fq1, fq2=""):
     return "".join(a for a, b in zip(name(fq1), name(fq2)) if a == b) or 'bm'
 
 
-def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None,
-            calmd=False, paired=True, set_as_failed=None):
+def bwa_mem(fa, mfq, extra_args, threads=1, rg=None,
+            paired=True, set_as_failed=None):
     conv_fa = convert_fasta(fa, just_name=True)
     if not is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.sa')):
         raise BWAMethException("first run bwameth.py index %s" % fa)
@@ -270,57 +270,33 @@ def bwa_mem(fa, mfq, extra_args, prefix='bwa-meth', threads=1, rg=None,
     cmd += "-R '{rg}' -t {threads} {extra_args} {conv_fa} {mfq}"
     cmd = cmd.format(**locals())
     sys.stderr.write("running: %s\n" % cmd.lstrip("|"))
-    as_bam(cmd, fa, prefix, calmd, set_as_failed)
+    as_bam(cmd, fa, set_as_failed)
 
 
-def as_bam(pfile, fa, prefix, calmd=False, set_as_failed=None):
+def as_bam(pfile, fa, set_as_failed=None):
     """
     pfile: either a file or a |process to generate sam output
     fa: the reference fasta
-    prefix: the output prefix or directory
     set_as_failed: None, 'f', or 'r'. If 'f'. Reads mapping to that strand
                       are given the sam flag of a failed QC alignment (0x200).
     """
-    view = "samtools view -bS - | samtools sort -m 2415919104 - -T {bam} -o "
-    if calmd:
-        cmds = [
-            view + "{bam}.tmp",
-            "samtools calmd -AbEr {bam}.tmp.bam {fa} > {bam}.bam 2>/dev/null",
-            "rm {bam}.tmp.bam"]
-    else:
-        cmds = [view + "{bam}.bam"]
+    sam_iter = nopen(pfile)
 
-    cmds.append("samtools index {bam}.bam")
-    cmds = [c.format(bam=prefix, fa=fa) for c in cmds]
-
-    sys.stderr.write("writing to:\n%s\n" % cmds[0])
-
-    p = nopen("|" + cmds[0], 'w')
-    out = p.stdin
-    #out = sys.stdout # useful for debugging
-    bam_iter = reader("%s" % (pfile,), header=False, quotechar=None)
-    for toks in bam_iter:
-        if not toks[0].startswith("@"): break
-        handle_header(toks, out)
+    for line in sam_iter:
+        if not line[0] == "@": break
+        handle_header(line)
     else:
         sys.stderr.flush()
         raise Exception("bad or empty fastqs")
-    bam_iter2 = chain([toks], bam_iter)
-    for read_name, pair_list in groupby(bam_iter2, itemgetter(0)):
+    sam_iter2 = (x.rstrip().split("\t") for x in chain([line], sam_iter))
+    for read_name, pair_list in groupby(sam_iter2, itemgetter(0)):
         pair_list = [Bam(toks) for toks in pair_list]
 
         for aln in handle_reads(pair_list, set_as_failed):
-            out.write(str(aln) + '\n')
+            sys.stdout.write(str(aln) + '\n')
 
-    p.stdin.flush()
-    p.stdout.flush()
-    p.stdin.close()
-    assert p.wait() == 0
-    for cmd in cmds[1:]:
-        sys.stderr.write("running: %s\n" % cmd.strip())
-        assert check_call(cmd.strip(), shell=True) == 0
-
-def handle_header(toks, out):
+def handle_header(line, out=sys.stdout):
+    toks = line.rstrip().split("\t")
     if toks[0].startswith("@SQ"):
         sq, sn, ln = toks  # @SQ    SN:fchr11    LN:122082543
         # we have f and r, only print out f
@@ -423,138 +399,6 @@ write.table(df, row.names=FALSE, quote=FALSE, sep="\t")
             print("\t".join(d))
 
 
-def tabulate_main(args):
-    __doc__ = """
-    tabulate methylation from bwameth.py call
-    """
-    p = argparse.ArgumentParser(__doc__)
-    p.add_argument("--reference", help="reference fasta")
-    p.add_argument("-t", "--threads", type=int, default=3)
-    p.add_argument("--dbsnp", help="optional dbsnp for GATK calibration")
-    p.add_argument("--prefix", help="output prefix", default='bmeth-tab')
-    p.add_argument("--trim", help="left, right trim to avoid bias",
-                        default="2,2")
-    p.add_argument("--map-q", type=int, default=25, help="only tabulate "
-                   "methylation for reads with at least this mapping quality")
-    p.add_argument("--bissnp", help="path to bissnp jar", required=True)
-    p.add_argument("--region", help="region to call variants, e.g. 'chr1'"
-            "can be used to aid in parallelization")
-    p.add_argument("--format", help="format for output summary."
-            " default matches bismark begraph output with: %(default)r"
-            " Where cs and ts are the counts of C's and T's and pct is the"
-            " percent methylation. Available variables in addition to those"
-            " are 'end' and 'ctx', where ctx is the  cpg context (CG/CHH/CHG).",
-            default="{chrom}\t{start}\t{start}\t{pct}\t{cs}\t{ts}")
-    group = p.add_mutually_exclusive_group()
-    group.add_argument("--context", choices=("all", "CG", "CG-strict"),
-            default="CG-strict", help="which methylation context to output to the"
-            "summary (BED) file. Default 'CG-strict' follows bissnp and only"
-            " pulls those sites that are CG in all samples (no CC samples,"
-            " for example) 'CG' will pull anything that is CG in any sample:"
-            " (MG,SG, YG, CR, CK). 'all' will pull all contexts. Automatically"
-            " set to 'all' when '--nome' is specified.")
-    group.add_argument("--nome", action='store_true', help="Whether the assay performed"
-            " is NOMe and therefore both GpC and CpG sites should be output."
-            " Implies '--context all'")
-    p.add_argument("bams", nargs="+")
-
-    a = p.parse_args(args)
-    assert os.path.exists(a.reference)
-    if not os.path.exists(a.reference + ".fai"):
-        sys.stderr.write("ERROR: run 'samtools faidx %s' before tabulation\n"
-                         % a.reference)
-        sys.exit(1)
-    trim = list(map(int, a.trim.split(",")))
-    if not a.prefix.endswith(('/', '.')):
-        a.prefix += "."
-    if a.region:
-        if op.exists(a.region):
-            name = op.basename(a.region)
-            if name.endswith('.gz'): name = name[:-3]
-            if name.endswith('.bed'): name = name[:-4]
-        else:
-            name = a.region.replace(":", "-")
-        a.prefix += name + "."
-    if a.nome:
-        a.context = 'all'
-
-    cmd = """\
-    java -Xmx24g -jar {bissnp}
-        -R {reference}
-        -I {bams}
-        -T BisulfiteGenotyper
-        --trim_5_end_bp {trim5}
-        --trim_3_end_bp {trim3}
-        -vfn1 {prefix}meth.vcf -vfn2 {prefix}snp.vcf
-        -mbq 12
-        -minConv 1
-        -toCoverage 1000
-        -mmq {mapq} {dbsnp} {region} {nome}
-        -nt {threads}""".format(
-            threads=a.threads,
-            dbsnp=("--dbsnp " + a.dbsnp) if a.dbsnp else "",
-            region=("-L " + a.region) if a.region else "",
-            bissnp=a.bissnp,
-            trim5=trim[0],
-            trim3=trim[1],
-            prefix=a.prefix,
-            reference=a.reference,
-            mapq=a.map_q,
-            bams=" -I ".join(a.bams),
-            nome=("-sm GM -out_modes EMIT_VARIANT_AND_CYTOSINES -C WCG,2 -C GCH,2") if a.nome else ""
-            ).replace("\n", " \\\n")
-    sys.stderr.write(cmd + '\n')
-    if not "--format" in args and a.context == "all":
-        a.format = a.format.rstrip('\n') + "\t{ctx}"
-
-    contexts = {'all': None,
-                'CG-strict': ('CG',),
-                'CG': "CG YG SG MG CR CS CK".split()}[a.context]
-
-    run(cmd)
-
-    fmt = a.format.rstrip('\n') + '\n'
-    sys.stderr.write(a.prefix + "meth.vcf\n")
-    for i, d in enumerate(reader(a.prefix + "meth.vcf",
-                       skip_while=lambda toks: toks[0] != "#CHROM",
-                       header="ordered")):
-        if i == 0:
-            samples = list(d.keys())[9:]
-            fhs = {}
-            for sample in samples:
-                fhs[sample] = open("{prefix}{sample}.meth.bed"\
-                        .format(prefix=a.prefix, sample=sample), "w")
-
-                fhs[sample].write("#" + fmt.replace("}", "").replace("{", ""))
-        if not d['FILTER'] in (".", "PASS"): continue
-
-        d['start'], d['end'] = str(int(d['POS']) - 1), d['POS']
-        d['chrom'] = d['CHROM']
-        for sample in samples:
-            if d[sample] == "./.": continue
-            sinfo = dict(zip(d['FORMAT'].split(":"), d[sample].split(":")))
-            try:
-                d['cs'] = int(sinfo['CM'])  # (M)ethylated
-                d['ts'] = int(sinfo['CU'])  # (U)n
-            except ValueError:
-                continue
-            except:
-                sys.stderr.write("\nline:%i\t%s\t%s\n" % (i, d, sinfo))
-                sys.stderr.write("%s\n" % d[sample])
-                raise
-            d['ctx'] = sinfo['CP']
-            if contexts is not None:
-                if not d['ctx'] in contexts: continue
-
-            if d['cs'] + d['ts'] == 0:
-                continue
-            else:
-                d['pct'] = "%.1f" % (100 * d['cs'] / float(d['cs'] + d['ts']))
-            fhs[sample].write(fmt.format(**d))
-
-    with open(a.prefix + "command.sh", 'w') as fh:
-        fh.write(cmd)
-
 def convert_fqs(fqs):
     script = __file__
     return "'<%s %s c2t %s %s'" % (sys.executable, script, fqs[0],
@@ -570,17 +414,12 @@ def main(args=sys.argv[1:]):
     if len(args) > 0 and args[0] == "c2t":
         sys.exit(convert_reads(args[1], args[2]))
 
-    if len(args) > 0 and args[0] == "tabulate":
-        sys.exit(tabulate_main(args[1:]))
-
     if len(args) > 0 and args[0] == "cnvs":
         sys.exit(cnvs_main(args[1:]))
 
     p = argparse.ArgumentParser(__doc__)
     p.add_argument("--reference", help="reference fasta", required=True)
     p.add_argument("-t", "--threads", type=int, default=6)
-    p.add_argument("-p", "--prefix", default="bwa-meth")
-    p.add_argument("--calmd", default=False, action="store_true")
     p.add_argument("--read-group", help="read-group to add to bam in same"
             " format as to bwa: '@RG\\tID:foo\\tSM:bar'")
     p.add_argument('--set-as-failed', help="flag alignments to this strand"
@@ -600,23 +439,11 @@ def main(args=sys.argv[1:]):
     # for the 2nd file. use G => A and bwa's support for streaming.
     conv_fqs_cmd = convert_fqs(args.fastqs)
 
-    bwa_mem(args.reference, conv_fqs_cmd, ' '.join(map(str, pass_through_args)), prefix=args.prefix,
+    bwa_mem(args.reference, conv_fqs_cmd, ' '.join(map(str, pass_through_args)),
              threads=args.threads, rg=args.read_group or
-             rname(*args.fastqs), calmd=args.calmd,
+             rname(*args.fastqs),
              paired=len(args.fastqs) == 2,
              set_as_failed=args.set_as_failed)
-
-
-def test():
-    ref = "example/ref.fa"
-    bwa_index(ref)
-    with tempfile.NamedTemporaryFile(delete=True) as rfh:
-        prefix=rfh.name
-        bwa_mem(ref, convert_fqs(("example/t_R1.fastq.gz",
-            "example/t_R2.fastq.gz")), "",
-            prefix=rfh.name, threads=2, rg="ex", paired=True)
-        assert op.exists("%s.bam" % prefix)
-        assert op.exists("%s.bam.bai" % prefix)
 
 if __name__ == "__main__":
     main(sys.argv[1:])

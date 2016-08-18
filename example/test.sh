@@ -29,7 +29,7 @@ assert ()                 #  If condition false,
 }
 
 
-rm -f ref.bwameth* bwa-meth.bam bwa-meth.bam.bai
+rm -f ref.bwameth* bwa-meth.bam
 
 python ../bwameth.py index ref.fa
 
@@ -37,7 +37,8 @@ python ../bwameth.py index ref.fa
 # test read-group
 ##########################
 rm -f bwa-meth.bam*
-python ../bwameth.py --read-group $'@RG\tID:asdf\tSM:asdf' --reference ref.fa t_R1.fastq.gz t_R2.fastq.gz
+python ../bwameth.py --read-group $'@RG\tID:asdf\tSM:asdf' --reference ref.fa t_R1.fastq.gz t_R2.fastq.gz | samtools view -b - > bwa-meth.bam
+
 n=`samtools view -H bwa-meth.bam | grep "@RG" | grep -cw "ID:asdf"`
 assert "$n -eq 1" $LINENO
 a=`samtools view  bwa-meth.bam | grep -c RG:Z:asdf`
@@ -49,39 +50,27 @@ assert "$a -eq $b" $LINENO
 ##########################
 # test normal alignment
 ##########################
-python ../bwameth.py --reference ref.fa t_R1.fastq.gz t_R2.fastq.gz
+python ../bwameth.py --reference ref.fa t_R1.fastq.gz t_R2.fastq.gz \
+	| samtools view -b - > bwa-meth.bam
 assert " -e bwa-meth.bam " $LINENO
-assert " -e bwa-meth.bam.bai " $LINENO
-
-##########################
-# test calmd
-##########################
-rm -r bwa-meth.bam bwa-meth.bam.bai
-python ../bwameth.py --calmd --reference ref.fa t_R1.fastq.gz t_R2.fastq.gz
-assert " -e bwa-meth.bam " $LINENO
-assert " -e bwa-meth.bam.bai " $LINENO
-
-count=`samtools view -cf2 bwa-meth.bam`
 
 ##########################
 # test multiple fastq sets
 ##########################
 # NOTE: here we repeat the same fastq, but you'd want diff ones from same sample
 rm -f bwa-meth.bam*
-python ../bwameth.py --reference ref.fa t_R1.fastq.gz,t_R1.fastq.gz t_R2.fastq.gz,t_R2.fastq.gz
+python ../bwameth.py --reference ref.fa t_R1.fastq.gz,t_R1.fastq.gz t_R2.fastq.gz,t_R2.fastq.gz \
+	| samtools view -b - > bwa-meth.bam
 assert " -e bwa-meth.bam " $LINENO
-assert " -e bwa-meth.bam.bai " $LINENO
-
-count2=`samtools view -cf2 bwa-meth.bam`
-assert "$count -lt $count2" $LINENO
 
 ##########################
 # test single end
 ##########################
 rm -f bwa-meth.bam*
-python ../bwameth.py --reference ref.fa t_R1.fastq.gz
+python ../bwameth.py --reference ref.fa t_R1.fastq.gz \
+	| samtools view -b - > bwa-meth.bam
+
 assert " -e bwa-meth.bam " $LINENO
-assert " -e bwa-meth.bam.bai " $LINENO
 count=`samtools view -cf2 bwa-meth.bam`
 assert "$count -eq 0" $LINENO
 count=`samtools view -cF4 bwa-meth.bam`
@@ -92,14 +81,13 @@ assert "$count -gt 1000" $LINENO
 # test single end, many fastqs
 ##############################
 rm -f bwa-meth.bam*
-python ../bwameth.py --reference ref.fa t_R1.fastq.gz,t_R1.fastq.gz
+python ../bwameth.py --reference ref.fa t_R1.fastq.gz,t_R1.fastq.gz \
+	| samtools view -b - > bwa-meth.bam
 assert " -e bwa-meth.bam " $LINENO
-assert " -e bwa-meth.bam.bai " $LINENO
 count2=`samtools view -cf2 bwa-meth.bam`
 assert "$count2 -eq 0" $LINENO
 count2=`samtools view -cF4 bwa-meth.bam`
 assert "$count2 -gt $count" $LINENO
-
 
 
 echo "Success: ALL Tests PASS"
