@@ -33,7 +33,7 @@ except ImportError: # python3
     maketrans = str.maketrans
 from toolshed import nopen, reader, is_newer_b
 
-__version__ = "0.20"
+__version__ = "0.2.0"
 
 def checkX(cmd):
     for p in os.environ['PATH'].split(":"):
