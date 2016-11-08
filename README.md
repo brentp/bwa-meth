@@ -58,7 +58,7 @@ command is `bwameth.py`.
 The commands:
 
     bwameth.py index $REF
-    bwameth.py --reference $REF some_R1.fastq.gz some_R2.fastq.gz --prefix some.output
+    bwameth.py --reference $REF some_R1.fastq.gz some_R2.fastq.gz > some.output.sam
 
 will create `some.output.bam` and `some.output.bam.bai`.
 To align single end-reads, specify only 1 file.
@@ -132,13 +132,10 @@ Align
 -----
 
     bwameth.py --threads 16 \
-         --prefix $PREFIX \
          --reference $REFERENCE \
-         $FQ1 $FQ2
+         $FQ1 $FQ2 > some.sam
          
-This will create $PREFIX.bam and $PREFIX.bam.bai. The output will pass
-Picard-tools ValidateSam and will have the
-reads in the correct location (flipped from G => A reference).
+The output will pass will have the reads in the correct location (flipped from G => A reference).
 
 Handles clipped alignments and indels correctly. Fastqs can be gzipped
 or not.
