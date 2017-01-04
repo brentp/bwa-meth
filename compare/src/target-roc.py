@@ -31,7 +31,7 @@ def count_both(bam, regions, flags):
     return bam, map(counter, [off, on])
 
 def count_bam(bam, flags):
-    return int(next(nopen("|samtools view -c {flags} {bam}".format(**locals()))))
+    return bam, int(next(nopen("|samtools view -c {flags} {bam}".format(**locals()))))
 
 ON  = "| samtools view {bam} -L {regions} {flags}"
 OFF = "| bedtools intersect -ubam -abam {bam} -b {regions} -wa -v \
@@ -47,7 +47,6 @@ def main(regions, bams, reads=None, flags="-F%i" % (0x100 | 0x4 | 0x200 | 0x400)
         print >>r2, "\t".join(toks)
     r2.flush()
     regions = r2.name
-    print reads
     if reads.isdigit():
         reads = int(reads)
     elif reads != "bam":
@@ -60,30 +59,34 @@ def main(regions, bams, reads=None, flags="-F%i" % (0x100 | 0x4 | 0x200 | 0x400)
     counts = dict(pmap(count_both, ((bam, regions, flags)
                             for bam in bams)))
 
+    if reads == "bam":
+        bam_reads = dict(pmap(count_bam, ((bam, flags) for bam in bams)))
+
+    out = sys.stdout
+    out.write("qual\tmethod\toff\ton\n")
+
     for bam in bams:
-        nreads = count_bam(bam, flags) if reads == "bam" else reads
-        bam_reads[bam] = nreads
+        nreads = float(bam_reads[bam] if reads == "bam" else reads)
         symbol = 'o' if len(set(counts[bam][0])) < 3 else '.'
         pl.plot(counts[bam][0] / float(nreads), counts[bam][1] / float(nreads),
                 '%s%s' % (colors.next(), symbol), label=name(bam))
+
+        for qual in range(0, 256):
+            off, on = counts[bam][0][qual], counts[bam][1][qual]
+            if off + on == 0: continue
+            out.write("{qual}\t{bam}\t{off}\t{on}\n".format(
+                qual=qual, bam=name(bam),
+                off=off / nreads,
+                on=on / nreads))
 
     pl.xlabel('off target')
     pl.ylabel('on target')
     pl.legend(loc='lower right')
     pl.xlim(xmin=0)
     pl.ylim(ymin=0)
-    pl.show()
+    pl.savefig('roc.png')
     os.unlink(r2.name)
 
-    out = sys.stdout
-    print >>out, "qual\tmethod\toff\ton"
-
-    for qual in range(0, 256):
-        for b in bams:
-            print >>out, "{qual}\t{bam}\t{off}\t{on}".format(
-            qual=qual, bam=name(b),
-            off=counts[b][0][qual] / bam_reads[bam],
-            on=counts[b][1][qual] / bam_reads[bam])
     print >>sys.stderr, "wrote", out.name
 
 if __name__ == "__main__":
