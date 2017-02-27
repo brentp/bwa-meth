@@ -17,7 +17,7 @@ part of `bwa-meth`--fixing any bugs or updating as needed.
 There are now several (likely better) alternatives for tabulation
 and SNP calling than provided here so I will not develop those further.
 
-For tabulation, bias, and plotting, use [PileOMeth](https://github.com/dpryan79/PileOMeth)
+For tabulation, bias, and plotting, use [MethylDackel](https://github.com/dpryan79/methyldackel)
 
 For SNP calling (a more modern BisSNP), use [biscuit](https://github.com/zwdzwd/biscuit)
 
