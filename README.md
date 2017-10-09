@@ -80,9 +80,9 @@ to your sys-admin). See the dependencies section below for further instructions:
     cd toolshed-0.4.0
     sudo python setup.py install
 
-    wget https://github.com/brentp/bwa-meth/archive/v0.10.tar.gz
-    tar xzvf v0.10.tar.gz
-    cd bwa-meth-0.10/
+    wget https://github.com/brentp/bwa-meth/archive/master.zip
+    unzip master.zip
+    cd bwa-meth-master/
     sudo python setup.py install
 
 ```
