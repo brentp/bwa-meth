@@ -260,7 +260,7 @@ def bwa_mem(fa, mfq, extra_args, threads=1, rg=None,
         raise BWAMethException("first run bwameth.py index %s" % fa)
 
     if not rg is None and not rg.startswith('@RG'):
-        rg = '@RG\tID:{rg}\tSM:{rg}'.format(rg=rg)
+        rg = '@RG\\tID:{rg}\\tSM:{rg}'.format(rg=rg)
 
     # penalize clipping and unpaired. lower penalty on mismatches (-B)
     cmd = "|bwa mem -T 40 -B 2 -L 10 -CM "
