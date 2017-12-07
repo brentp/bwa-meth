@@ -72,8 +72,10 @@ def convert_reads(fq1s, fq2s, out=sys.stdout):
         sys.stderr.write("converting reads in %s,%s\n" % (fq1, fq2))
         fq1 = nopen(fq1)
 
+        #examines first five lines to detect if this is an interleaved fastq file
         first_five = list(islice(fq1, 5))
         fq1.seek(0)
+
         r1_header = first_five[0]
         r2_header = first_five[-1]
 
@@ -81,6 +83,8 @@ def convert_reads(fq1s, fq2s, out=sys.stdout):
             already_interleaved = True
         else:
             already_interleaved = False
+
+        q1_iter = izip(*[fq1] * 4)
 
         if fq2 != "NA":
             fq2 = nopen(fq2)
@@ -91,8 +95,6 @@ def convert_reads(fq1s, fq2s, out=sys.stdout):
             else:
                 sys.stderr.write("WARNING: running bwameth in single-end mode\n")
             q2_iter = repeat((None, None, None, None))
-
-        q1_iter = izip(*[fq1] * 4)
 
         lt80 = 0
 
