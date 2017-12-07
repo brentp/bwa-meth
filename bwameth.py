@@ -275,7 +275,10 @@ def rname(fq1, fq2=""):
         if n.endswith('.fastq'): n = n[:-6]
         if n.endswith(('.fq', '.r1', '.r2')): n = n[:-3]
         return n
-    return "".join(a for a, b in zip(name(fq1), name(fq2)) if a == b) or 'bm'
+    if fq2 == '':
+        return name(fq1)
+    else:
+        return "".join(a for a, b in zip(name(fq1), name(fq2)) if a == b) or 'bm'
 
 
 def bwa_mem(fa, mfq, extra_args, threads=1, rg=None,
