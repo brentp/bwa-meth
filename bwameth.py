@@ -21,11 +21,11 @@ import os.path as op
 import argparse
 from subprocess import check_call
 from operator import itemgetter
-from itertools import groupby, repeat, chain
+from itertools import groupby, repeat, chain, islice
 import re
 
 try:
-    from itertools import izip, islice
+    from itertools import izip
     import string
     maketrans = string.maketrans
 except ImportError: # python3
@@ -72,19 +72,26 @@ def convert_reads(fq1s, fq2s, out=sys.stdout):
         sys.stderr.write("converting reads in %s,%s\n" % (fq1, fq2))
         fq1 = nopen(fq1)
 
-        first_five = islice(fq1, 5)
+        first_five = list(islice(fq1, 5))
+        fq1.seek(0)
         r1_header = first_five[0]
-        r2_header = first_five[:-1]
+        r2_header = first_five[-1]
 
         if r1_header.split(' ')[0] == r2_header.split(' ')[0]:
             already_interleaved = True
+        else:
+            already_interleaved = False
 
         if fq2 != "NA":
             fq2 = nopen(fq2)
             q2_iter = izip(*[fq2] * 4)
         else:
-            sys.stderr.write("WARNING: running bwameth in single-end mode\n")
+            if already_interleaved:
+                sys.stderr.write("detected interleaved fastq\n")
+            else:
+                sys.stderr.write("WARNING: running bwameth in single-end mode\n")
             q2_iter = repeat((None, None, None, None))
+
         q1_iter = izip(*[fq1] * 4)
 
         lt80 = 0
@@ -92,11 +99,11 @@ def convert_reads(fq1s, fq2s, out=sys.stdout):
         if already_interleaved:
             selected_iter = q1_iter
         else:
-            selected_iter = izip(q1_iter, q2_iter)
+            selected_iter = chain(*izip(q1_iter, q2_iter))
 
         for read_i, (name, seq, _, qual) in enumerate(selected_iter):
             if name is None: continue
-            convert_and_write_read(name,seq,qual,read_i,out)
+            convert_and_write_read(name,seq,qual,read_i%2,out)
             if len(seq) < 80:
                 lt80 += 1
 
@@ -128,7 +135,9 @@ def convert_and_write_read(name,seq,qual,read_i,out):
     name = " ".join((name,
                      "YS:Z:" + seq +
                      "\tYC:Z:" + char_a + char_b + '\n'))
+    sys.stderr.write("read: %d seq: %s -> \n" % (read_i, seq))
     seq = seq.replace(char_a, char_b)
+    sys.stderr.write("             %s\n" % seq)
     out.write("".join((name, seq, "\n+\n", qual)))
 
 def convert_fasta(ref_fasta, just_name=False):
@@ -447,7 +456,7 @@ def main(args=sys.argv[1:]):
             " reads to align to the original-bottom (OB) strand and will flag"
             " as failed those aligning to the forward, or original top (OT).",
         default=None, choices=('f', 'r'))
-    p.add_argument('-p', '--interleaved', help='fastq files have 4 lines of read1 followed by 4 lines of read2 (e.g. seqtk mergepe output)')
+    p.add_argument('-p', '--interleaved', action='store_true', help='fastq files have 4 lines of read1 followed by 4 lines of read2 (e.g. seqtk mergepe output)')
     p.add_argument('--version', action='version', version='bwa-meth.py {}'.format(__version__))
 
     p.add_argument("fastqs", nargs="+", help="bs-seq fastqs to align. Run"
