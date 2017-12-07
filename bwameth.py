@@ -10,8 +10,8 @@ Gets converted to:
     bwa mem -pCMR ref.fa.bwameth.c2t '<python bwameth.py c2t A.fq B.fq'
 
 So that A.fq has C's converted to T's and B.fq has G's converted to A's
-and both are streamed directly to the aligner without a temporary file.
-The output is a corrected, sorted, indexed BAM.
+and both are streamed directly to the aligner without a temporary file
+producting standard SAM output
 """
 from __future__ import print_function
 import tempfile
