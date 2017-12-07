@@ -135,9 +135,7 @@ def convert_and_write_read(name,seq,qual,read_i,out):
     name = " ".join((name,
                      "YS:Z:" + seq +
                      "\tYC:Z:" + char_a + char_b + '\n'))
-    sys.stderr.write("read: %d seq: %s -> \n" % (read_i, seq))
     seq = seq.replace(char_a, char_b)
-    sys.stderr.write("             %s\n" % seq)
     out.write("".join((name, seq, "\n+\n", qual)))
 
 def convert_fasta(ref_fasta, just_name=False):
