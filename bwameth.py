@@ -51,7 +51,7 @@ def nopen_keep_parent_stdin(f, mode="r"):
         if sys.version_info[0] > 2:
             import io
             p.stdout = io.TextIOWrapper(p.stdout)
-            p.stdin = io.TextIOWrapper(p.stdin)
+            p.stdin = io.TextIOWrapper(sys.stdin)
             if mode != "r":
                 p.stderr = io.TextIOWrapper(p.stderr)
 
