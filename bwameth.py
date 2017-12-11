@@ -43,7 +43,7 @@ def nopen_keep_parent_handles(f, mode="r"):
         # using shell explicitly makes things like process substitution work:
         # http://stackoverflow.com/questions/7407667/python-subprocess-subshells-and-redirection
         # use sys.stderr so we dont have to worry about checking it...
-        p = Popen(f[1:], stdout=None, stdin=None,
+        p = Popen(f[1:], stdout=PIPE, stdin=sys.stdin,
                   stderr=sys.stderr if mode == "r" else PIPE,
                   shell=True, bufsize=-1, # use system default for buffering
                   preexec_fn=toolshed.files.prefunc,
