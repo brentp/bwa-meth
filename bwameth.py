@@ -37,7 +37,7 @@ from toolshed import nopen, reader, is_newer_b
 
 __version__ = "0.2.0"
 
-def nopen_keep_parent_handles(f, mode="r"):
+def nopen_keep_parent_stdin(f, mode="r"):
 
     if f.startswith("|"):
         # using shell explicitly makes things like process substitution work:
@@ -338,7 +338,7 @@ def as_bam(pfile, fa, set_as_failed=None):
     set_as_failed: None, 'f', or 'r'. If 'f'. Reads mapping to that strand
                       are given the sam flag of a failed QC alignment (0x200).
     """
-    sam_iter = nopen_keep_parent_handles(pfile,'r')
+    sam_iter = nopen_keep_parent_stdin(pfile, 'r')
 
     for line in sam_iter:
         if not line[0] == "@": break
