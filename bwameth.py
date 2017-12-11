@@ -18,6 +18,7 @@ import tempfile
 import sys
 import os
 import os.path as op
+from subprocess import Popen, PIPE
 import argparse
 from subprocess import check_call
 from operator import itemgetter
@@ -31,9 +32,34 @@ try:
 except ImportError: # python3
     izip = zip
     maketrans = str.maketrans
+import toolshed
 from toolshed import nopen, reader, is_newer_b
 
 __version__ = "0.2.0"
+
+def nopen_keep_parent_handles(f, mode="r"):
+
+    if f.startswith("|"):
+        # using shell explicitly makes things like process substitution work:
+        # http://stackoverflow.com/questions/7407667/python-subprocess-subshells-and-redirection
+        # use sys.stderr so we dont have to worry about checking it...
+        p = Popen(f[1:], stdout=None, stdin=None,
+                  stderr=sys.stderr if mode == "r" else PIPE,
+                  shell=True, bufsize=-1, # use system default for buffering
+                  preexec_fn=toolshed.files.prefunc,
+                  close_fds=False, executable=os.environ.get('SHELL'))
+        if sys.version_info[0] > 2:
+            import io
+            p.stdout = io.TextIOWrapper(p.stdout)
+            p.stdin = io.TextIOWrapper(p.stdin)
+            if mode != "r":
+                p.stderr = io.TextIOWrapper(p.stderr)
+
+        if mode and mode[0] == "r":
+            return toolshed.files.process_iter(p, f[1:])
+        return p
+    else:
+        return toolshed.files.nopen(f,mode)
 
 def checkX(cmd):
     for p in os.environ['PATH'].split(":"):
@@ -74,7 +100,6 @@ def convert_reads(fq1s, fq2s, out=sys.stdout):
 
         #examines first five lines to detect if this is an interleaved fastq file
         first_five = list(islice(fq1, 5))
-        fq1.seek(0)
 
         r1_header = first_five[0]
         r2_header = first_five[-1]
@@ -84,7 +109,7 @@ def convert_reads(fq1s, fq2s, out=sys.stdout):
         else:
             already_interleaved = False
 
-        q1_iter = izip(*[fq1] * 4)
+        q1_iter = izip(*[chain(first_five,fq1)] * 4)
 
         if fq2 != "NA":
             fq2 = nopen(fq2)
@@ -283,7 +308,7 @@ def rname(fq1, fq2=""):
         return "".join(a for a, b in zip(name(fq1), name(fq2)) if a == b) or 'bm'
 
 
-def bwa_mem(fa, mfq, extra_args, threads=1, rg=None,
+def bwa_mem(fa, fq_convert_cmd, extra_args, threads=1, rg=None,
             paired=True, set_as_failed=None):
     conv_fa = convert_fasta(fa, just_name=True)
     if not is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.sa')):
@@ -292,12 +317,15 @@ def bwa_mem(fa, mfq, extra_args, threads=1, rg=None,
     if not rg is None and not rg.startswith('@RG'):
         rg = '@RG\\tID:{rg}\\tSM:{rg}'.format(rg=rg)
 
+    #starts the pipeline with the program to convert fastqs
+    cmd = ("|%s " % fq_convert_cmd)
+
     # penalize clipping and unpaired. lower penalty on mismatches (-B)
-    cmd = "|bwa mem -T 40 -B 2 -L 10 -CM "
+    cmd += "|bwa mem -T 40 -B 2 -L 10 -CM "
 
     if paired:
         cmd += ("-U 100 -p ")
-    cmd += "-R '{rg}' -t {threads} {extra_args} {conv_fa} {mfq}"
+    cmd += "-R '{rg}' -t {threads} {extra_args} {conv_fa} -"
     cmd = cmd.format(**locals())
     sys.stderr.write("running: %s\n" % cmd.lstrip("|"))
     as_bam(cmd, fa, set_as_failed)
@@ -310,7 +338,7 @@ def as_bam(pfile, fa, set_as_failed=None):
     set_as_failed: None, 'f', or 'r'. If 'f'. Reads mapping to that strand
                       are given the sam flag of a failed QC alignment (0x200).
     """
-    sam_iter = nopen(pfile)
+    sam_iter = nopen_keep_parent_handles(pfile,'r')
 
     for line in sam_iter:
         if not line[0] == "@": break
@@ -431,7 +459,7 @@ write.table(df, row.names=FALSE, quote=FALSE, sep="\t")
 
 def convert_fqs(fqs):
     script = __file__
-    return "'<%s %s c2t %s %s'" % (sys.executable, script, fqs[0],
+    return "%s %s c2t %s %s" % (sys.executable, script, fqs[0],
                fqs[1] if len(fqs) > 1
                       else ','.join(['NA'] * len(fqs[0].split(","))))
 
