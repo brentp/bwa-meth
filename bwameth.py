@@ -101,7 +101,7 @@ def convert_reads(fq1s, fq2s, out=sys.stdout):
         if already_interleaved:
             selected_iter = q1_iter
         else:
-            selected_iter = chain(*izip(q1_iter, q2_iter))
+            selected_iter = chain.from_iterable(izip(q1_iter, q2_iter))
 
         for read_i, (name, seq, _, qual) in enumerate(selected_iter):
             if name is None: continue
