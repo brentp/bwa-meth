@@ -377,7 +377,7 @@ def handle_reads(alns, set_as_failed):
         assert len(aln.seq) == len(aln.qual), aln.read
         # don't need this any more.
         aln.other = [x for x in aln.other if not x.startswith('YS:Z')]
-        
+
         # first letter of chrom is 'f' or 'r'
         direction = aln.chrom[0]
         aln.chrom = aln.chrom.lstrip('fr')
