@@ -109,7 +109,7 @@ def convert_reads(fq1s, fq2s, out=sys.stdout):
         else:
             already_interleaved = False
 
-        q1_iter = izip(*[chain(first_five,fq1)] * 4)
+        q1_iter = izip(*[chain.from_iterable(first_five,fq1)] * 4)
 
         if fq2 != "NA":
             fq2 = nopen(fq2)
