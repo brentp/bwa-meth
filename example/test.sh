@@ -54,6 +54,16 @@ python ../bwameth.py --reference ref.fa t_R1.fastq.gz t_R2.fastq.gz \
 	| samtools view -b - > bwa-meth.bam
 assert " -e bwa-meth.bam " $LINENO
 
+##############################
+# test interleaved on pipe
+##############################
+seqtk mergepe t_R1.fastq.gz t_R2.fastq.gz \
+    | python ../bwameth.py -p --reference ref.fa --read-group "@RG\tID:t_R" /dev/stdin \
+    | samtools view -b - > bwa-meth-stdin.bam
+assert " -e bwa-meth-stdin.bam " $LINENO
+diff=`diff <(samtools view bwa-meth.bam) <(samtools view bwa-meth-stdin.bam)`
+assert " $diff == ''" $LINENO
+
 ##########################
 # test multiple fastq sets
 ##########################

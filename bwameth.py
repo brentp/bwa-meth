@@ -10,18 +10,19 @@ Gets converted to:
     bwa mem -pCMR ref.fa.bwameth.c2t '<python bwameth.py c2t A.fq B.fq'
 
 So that A.fq has C's converted to T's and B.fq has G's converted to A's
-and both are streamed directly to the aligner without a temporary file.
-The output is a corrected, sorted, indexed BAM.
+and both are streamed directly to the aligner without a temporary file
+producing standard SAM output
 """
 from __future__ import print_function
 import tempfile
 import sys
 import os
 import os.path as op
+from subprocess import Popen, PIPE
 import argparse
 from subprocess import check_call
 from operator import itemgetter
-from itertools import groupby, repeat, chain
+from itertools import groupby, repeat, chain, islice
 import re
 
 try:
@@ -31,9 +32,34 @@ try:
 except ImportError: # python3
     izip = zip
     maketrans = str.maketrans
+import toolshed
 from toolshed import nopen, reader, is_newer_b
 
 __version__ = "0.2.1"
+
+def nopen_keep_parent_stdin(f, mode="r"):
+
+    if f.startswith("|"):
+        # using shell explicitly makes things like process substitution work:
+        # http://stackoverflow.com/questions/7407667/python-subprocess-subshells-and-redirection
+        # use sys.stderr so we dont have to worry about checking it...
+        p = Popen(f[1:], stdout=PIPE, stdin=sys.stdin,
+                  stderr=sys.stderr if mode == "r" else PIPE,
+                  shell=True, bufsize=-1, # use system default for buffering
+                  preexec_fn=toolshed.files.prefunc,
+                  close_fds=False, executable=os.environ.get('SHELL'))
+        if sys.version_info[0] > 2:
+            import io
+            p.stdout = io.TextIOWrapper(p.stdout)
+            p.stdin = io.TextIOWrapper(sys.stdin)
+            if mode != "r":
+                p.stderr = io.TextIOWrapper(p.stderr)
+
+        if mode and mode[0] == "r":
+            return toolshed.files.process_iter(p, f[1:])
+        return p
+    else:
+        return toolshed.files.nopen(f,mode)
 
 def checkX(cmd):
     for p in os.environ['PATH'].split(":"):
@@ -71,47 +97,73 @@ def convert_reads(fq1s, fq2s, out=sys.stdout):
     for fq1, fq2 in zip(fq1s.split(","), fq2s.split(",")):
         sys.stderr.write("converting reads in %s,%s\n" % (fq1, fq2))
         fq1 = nopen(fq1)
+
+        #examines first five lines to detect if this is an interleaved fastq file
+        first_five = list(islice(fq1, 5))
+
+        r1_header = first_five[0]
+        r2_header = first_five[-1]
+
+        if r1_header.split(' ')[0] == r2_header.split(' ')[0]:
+            already_interleaved = True
+        else:
+            already_interleaved = False
+
+        q1_iter = izip(*[chain.from_iterable([first_five,fq1])] * 4)
+
         if fq2 != "NA":
             fq2 = nopen(fq2)
             q2_iter = izip(*[fq2] * 4)
         else:
-            sys.stderr.write("WARNING: running bwameth in single-end mode\n")
+            if already_interleaved:
+                sys.stderr.write("detected interleaved fastq\n")
+            else:
+                sys.stderr.write("WARNING: running bwameth in single-end mode\n")
             q2_iter = repeat((None, None, None, None))
-        q1_iter = izip(*[fq1] * 4)
 
         lt80 = 0
-        for pair in izip(q1_iter, q2_iter):
-            for read_i, (name, seq, _, qual) in enumerate(pair):
-                if name is None: continue
-                name = name.rstrip("\r\n").split(" ")[0]
-                if name[0] != "@":
-                    sys.stderr.write("""ERROR!!!!
-ERROR!!! FASTQ conversion failed
-ERROR!!! expecting FASTQ 4-tuples, but found a record %s that doesn't start with "@"
-""" % name)
-                    sys.exit(1)
-                if name.endswith(("_R1", "_R2")):
-                    name = name[:-3]
-                elif name.endswith(("/1", "/2")):
-                    name = name[:-2]
 
-                seq = seq.upper().rstrip('\n')
-                if len(seq) < 80:
-                    lt80 += 1
+        if already_interleaved:
+            selected_iter = q1_iter
+        else:
+            selected_iter = chain.from_iterable(izip(q1_iter, q2_iter))
 
-                char_a, char_b = ['CT', 'GA'][read_i]
-                # keep original sequence as name.
-                name = " ".join((name,
-                                "YS:Z:" + seq +
-                                "\tYC:Z:" + char_a + char_b + '\n'))
-                seq = seq.replace(char_a, char_b)
-                out.write("".join((name, seq, "\n+\n", qual)))
+        for read_i, (name, seq, _, qual) in enumerate(selected_iter):
+            if name is None: continue
+            convert_and_write_read(name,seq,qual,read_i%2,out)
+            if len(seq) < 80:
+                lt80 += 1
 
     out.flush()
     if lt80 > 50:
         sys.stderr.write("WARNING: %i reads with length < 80\n" % lt80)
         sys.stderr.write("       : this program is designed for long reads\n")
     return 0
+
+def convert_and_write_read(name,seq,qual,read_i,out):
+
+    name = name.rstrip("\r\n").split(" ")[0]
+    if name[0] != "@":
+        sys.stderr.write("""ERROR!!!!
+    ERROR!!! FASTQ conversion failed
+    ERROR!!! expecting FASTQ 4-tuples, but found a record %s that doesn't start with "@"
+    """ % name)
+        sys.exit(1)
+    if name.endswith(("_R1", "_R2")):
+        name = name[:-3]
+    elif name.endswith(("/1", "/2")):
+        name = name[:-2]
+
+    seq = seq.upper().rstrip('\n')
+
+
+    char_a, char_b = ['CT', 'GA'][read_i]
+    # keep original sequence as name.
+    name = " ".join((name,
+                     "YS:Z:" + seq +
+                     "\tYC:Z:" + char_a + char_b + '\n'))
+    seq = seq.replace(char_a, char_b)
+    out.write("".join((name, seq, "\n+\n", qual)))
 
 def convert_fasta(ref_fasta, just_name=False):
     out_fa = ref_fasta + ".bwameth.c2t"
@@ -250,24 +302,30 @@ def rname(fq1, fq2=""):
         if n.endswith('.fastq'): n = n[:-6]
         if n.endswith(('.fq', '.r1', '.r2')): n = n[:-3]
         return n
-    return "".join(a for a, b in zip(name(fq1), name(fq2)) if a == b) or 'bm'
+    if fq2 == '':
+        return name(fq1)
+    else:
+        return "".join(a for a, b in zip(name(fq1), name(fq2)) if a == b) or 'bm'
 
 
-def bwa_mem(fa, mfq, extra_args, threads=1, rg=None,
+def bwa_mem(fa, fq_convert_cmd, extra_args, threads=1, rg=None,
             paired=True, set_as_failed=None):
     conv_fa = convert_fasta(fa, just_name=True)
     if not is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.sa')):
         raise BWAMethException("first run bwameth.py index %s" % fa)
 
     if not rg is None and not rg.startswith('@RG'):
-        rg = '@RG\tID:{rg}\tSM:{rg}'.format(rg=rg)
+        rg = '@RG\\tID:{rg}\\tSM:{rg}'.format(rg=rg)
+
+    #starts the pipeline with the program to convert fastqs
+    cmd = ("|%s " % fq_convert_cmd)
 
     # penalize clipping and unpaired. lower penalty on mismatches (-B)
-    cmd = "|bwa mem -T 40 -B 2 -L 10 -CM "
+    cmd += "|bwa mem -T 40 -B 2 -L 10 -CM "
 
     if paired:
         cmd += ("-U 100 -p ")
-    cmd += "-R '{rg}' -t {threads} {extra_args} {conv_fa} {mfq}"
+    cmd += "-R '{rg}' -t {threads} {extra_args} {conv_fa} -"
     cmd = cmd.format(**locals())
     sys.stderr.write("running: %s\n" % cmd.lstrip("|"))
     as_bam(cmd, fa, set_as_failed)
@@ -280,7 +338,7 @@ def as_bam(pfile, fa, set_as_failed=None):
     set_as_failed: None, 'f', or 'r'. If 'f'. Reads mapping to that strand
                       are given the sam flag of a failed QC alignment (0x200).
     """
-    sam_iter = nopen(pfile)
+    sam_iter = nopen_keep_parent_stdin(pfile, 'r')
 
     for line in sam_iter:
         if not line[0] == "@": break
@@ -319,7 +377,7 @@ def handle_reads(alns, set_as_failed):
         assert len(aln.seq) == len(aln.qual), aln.read
         # don't need this any more.
         aln.other = [x for x in aln.other if not x.startswith('YS:Z')]
-        
+
         # first letter of chrom is 'f' or 'r'
         direction = aln.chrom[0]
         aln.chrom = aln.chrom.lstrip('fr')
@@ -401,7 +459,7 @@ write.table(df, row.names=FALSE, quote=FALSE, sep="\t")
 
 def convert_fqs(fqs):
     script = __file__
-    return "'<%s %s c2t %s %s'" % (sys.executable, script, fqs[0],
+    return "%s %s c2t %s %s" % (sys.executable, script, fqs[0],
                fqs[1] if len(fqs) > 1
                       else ','.join(['NA'] * len(fqs[0].split(","))))
 
@@ -429,6 +487,7 @@ def main(args=sys.argv[1:]):
             " reads to align to the original-bottom (OB) strand and will flag"
             " as failed those aligning to the forward, or original top (OT).",
         default=None, choices=('f', 'r'))
+    p.add_argument('-p', '--interleaved', action='store_true', help='fastq files have 4 lines of read1 followed by 4 lines of read2 (e.g. seqtk mergepe output)')
     p.add_argument('--version', action='version', version='bwa-meth.py {}'.format(__version__))
 
     p.add_argument("fastqs", nargs="+", help="bs-seq fastqs to align. Run"
@@ -441,10 +500,10 @@ def main(args=sys.argv[1:]):
     conv_fqs_cmd = convert_fqs(args.fastqs)
 
     bwa_mem(args.reference, conv_fqs_cmd, ' '.join(map(str, pass_through_args)),
-             threads=args.threads, rg=args.read_group or
-             rname(*args.fastqs),
-             paired=len(args.fastqs) == 2,
-             set_as_failed=args.set_as_failed)
+            threads=args.threads,
+            rg=args.read_group or rname(*args.fastqs),
+            paired=(len(args.fastqs) == 2 or args.interleaved),
+            set_as_failed=args.set_as_failed)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
