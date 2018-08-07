@@ -35,7 +35,7 @@ except ImportError: # python3
 import toolshed
 from toolshed import nopen, reader, is_newer_b
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 def nopen_keep_parent_stdin(f, mode="r"):
 
