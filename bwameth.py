@@ -380,7 +380,9 @@ def handle_reads(alns, set_as_failed):
 
         # first letter of chrom is 'f' or 'r'
         direction = aln.chrom[0]
-        aln.chrom = aln.chrom.lstrip('fr')
+        # if chrom name is "ref",  index gets "rref" and "fref" , "fref".lstrip('fr') gets "ef"
+        # aln.chrom = aln.chrom.lstrip('fr')
+        aln.chrom = aln.chrom[1:]
 
         if not aln.is_mapped():
             aln.seq = orig_seq
