@@ -309,7 +309,7 @@ def rname(fq1, fq2=""):
 
 
 def bwa_mem(fa, fq_convert_cmd, extra_args, threads=1, rg=None,
-            paired=True, set_as_failed=None):
+            paired=True, set_as_failed=None, do_not_penalize_chimeras=False):
     conv_fa = convert_fasta(fa, just_name=True)
     if not is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.sa')):
         raise BWAMethException("first run bwameth.py index %s" % fa)
@@ -328,10 +328,10 @@ def bwa_mem(fa, fq_convert_cmd, extra_args, threads=1, rg=None,
     cmd += "-R '{rg}' -t {threads} {extra_args} {conv_fa} -"
     cmd = cmd.format(**locals())
     sys.stderr.write("running: %s\n" % cmd.lstrip("|"))
-    as_bam(cmd, fa, set_as_failed)
+    as_bam(cmd, fa, set_as_failed, do_not_penalize_chimeras)
 
 
-def as_bam(pfile, fa, set_as_failed=None):
+def as_bam(pfile, fa, set_as_failed=None, do_not_penalize_chimeras=False):
     """
     pfile: either a file or a |process to generate sam output
     fa: the reference fasta
@@ -350,7 +350,7 @@ def as_bam(pfile, fa, set_as_failed=None):
     for read_name, pair_list in groupby(sam_iter2, itemgetter(0)):
         pair_list = [Bam(toks) for toks in pair_list]
 
-        for aln in handle_reads(pair_list, set_as_failed):
+        for aln in handle_reads(pair_list, set_as_failed, do_not_penalize_chimeras):
             sys.stdout.write(str(aln) + '\n')
 
 def handle_header(line, out=sys.stdout):
@@ -370,7 +370,7 @@ def handle_header(line, out=sys.stdout):
     out.write("\t".join(toks) + "\n")
 
 
-def handle_reads(alns, set_as_failed):
+def handle_reads(alns, set_as_failed, do_not_penalize_chimeras):
 
     for aln in alns:
         orig_seq = aln.original_seq
@@ -392,13 +392,14 @@ def handle_reads(alns, set_as_failed):
         if set_as_failed == direction:
             aln.flag |= 0x200
 
+        if not do_not_penalize_chimeras:
         # here we have a heuristic that if the longest match is not 44% of the
         # sequence length, we mark it as failed QC and un-pair it. At the end
         # of the loop we set all members of this pair to be unmapped
-        if aln.longest_match() < (len(orig_seq) * 0.44):
-            aln.flag |= 0x200  # fail qc
-            aln.flag &= (~0x2) # un-pair
-            aln.mapq = min(int(aln.mapq), 1)
+            if aln.longest_match() < (len(orig_seq) * 0.44):
+                aln.flag |= 0x200  # fail qc
+                aln.flag &= (~0x2) # un-pair
+                aln.mapq = min(int(aln.mapq), 1)
 
         mate_direction = aln.chrom_mate[0]
         if mate_direction not in "*=":
@@ -494,6 +495,10 @@ def main(args=sys.argv[1:]):
             "multiple sets separated by commas, e.g. ... a_R1.fastq,b_R1.fastq"
             " a_R2.fastq,b_R2.fastq note that the order must be maintained.")
 
+    p.add_argument('--do-not-penalize-chimeras', action='store_true', help="do not use the heuristic" 
+            " that if the longest match is not 44% of the sequence length, we mark"
+            " it as failed QC and un-pair it, and set all members of pair to unmapped")
+
     args, pass_through_args = p.parse_known_args(args)
 
     # for the 2nd file. use G => A and bwa's support for streaming.
@@ -503,7 +508,8 @@ def main(args=sys.argv[1:]):
             threads=args.threads,
             rg=args.read_group or rname(*args.fastqs),
             paired=(len(args.fastqs) == 2 or args.interleaved),
-            set_as_failed=args.set_as_failed)
+            set_as_failed=args.set_as_failed,
+            do_not_penalize_chimeras=args.do_not_penalize_chimeras)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
