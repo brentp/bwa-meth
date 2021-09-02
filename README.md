@@ -1,7 +1,7 @@
 bwa-meth
 ========
 
-Fast and accurante alignment of BS-Seq reads.
+Fast and accurate alignment of BS-Seq reads.
 
 ## NOTE!!!
 
