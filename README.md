@@ -1,7 +1,7 @@
 bwa-meth
 ========
 
-Fast and accurate alignment of BS-Seq reads.
+Fast and accurante alignment of BS-Seq reads.
 
 ## NOTE!!!
 
@@ -56,10 +56,13 @@ Without installation, you can use as `python bwameth.py` with install, the
 command is `bwameth.py`.
 
 The commands:
+```bash
+bwameth.py index $REF #Indexes with BWA-MEM (default)
+    #OR
+bwameth.py index mem2 $REF #Indexes with BWA-MEM2
 
-    bwameth.py index $REF
-    bwameth.py --reference $REF some_R1.fastq.gz some_R2.fastq.gz > some.output.sam
-
+bwameth.py --reference $REF some_R1.fastq.gz some_R2.fastq.gz > some.output.sam
+```
 will create `some.output.bam` and `some.output.bam.bai`.
 To align single end-reads, specify only 1 file.
 
@@ -112,7 +115,7 @@ Dependencies
 
  + samtools command on the `$PATH` (https://github.com/samtools/samtools)
 
- + bwa mem from: https://github.com/lh3/bwa
+ + bwa mem from: https://github.com/lh3/bwa OR bwa-mem2 from: https://github.com/bwa-mem2/bwa-mem2
 
 
 usage
@@ -123,7 +126,9 @@ Index
 
 One time only, you need to index a reference sequence.
 
-    bwameth.py index $REFERENCE
+    bwameth.py index $REF #Indexes with BWA-MEM (default)
+    #OR
+    bwameth.py index mem2 $REF #Indexes with BWA-MEM2
 
 If your reference is `some.fasta`, this will create `some.c2t.fasta`
 and all of the bwa indexes associated with it.
@@ -140,10 +145,19 @@ The output will pass will have the reads in the correct location (flipped from G
 Handles clipped alignments and indels correctly. Fastqs can be gzipped
 or not.
 
-The command above will be sent to BWA to do the work as something like:
+The command above will be sent to BWA-MEM or BWA-MEM2 to do the work as something like:
 
-    bwa mem -L 25 -pCM -t 15  $REFERENCE.c2t.fa \
+```bash
+bwa mem -L 25 -pCM -t 15  $REFERENCE.c2t.fa \
             '<python bwameth.py c2t $FQ1 $FQ2'
+
+              #OR
+
+bwa-mem2 mem -L 25 -pCM -t 15  $REFERENCE.c2t.fa \
+            '<python bwameth.py c2t $FQ1 $FQ2'
+```
+
+Index from BWA-MEM or BWA-MEM2 is auto detected and the corresponding aligner is chosen.
 
 So the converted reads are streamed directly to bwa and **never written
 to disk**. The output from that is modified by `bwa-meth` and streamed
