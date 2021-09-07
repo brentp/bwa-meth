@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-map bisulfite converted reads to an insilico converted genome using bwa mem.
+map bisulfite converted reads to an insilico converted genome using bwa mem OR bwa mem2.
 A command to this program like:
 
     python bwameth.py --reference ref.fa A.fq B.fq
@@ -8,10 +8,21 @@ A command to this program like:
 Gets converted to:
 
     bwa mem -pCMR ref.fa.bwameth.c2t '<python bwameth.py c2t A.fq B.fq'
+    OR
+    bwa-mem2 mem -pCMR ref.fa.bwameth.c2t '<python bwameth.py c2t A.fq B.fq'
 
 So that A.fq has C's converted to T's and B.fq has G's converted to A's
 and both are streamed directly to the aligner without a temporary file
-producing standard SAM output
+producing standard SAM output. 
+
+Index from BWA-MEM or BWA-MEM2 is auto detected and the corresponding aligner is chosen.
+
+Indexing:
+bwa-meth supports indexes from BWA-MEM and BWA-MEM2.
+
+    bwameth.py index $REF #For BWA-MEM (default)
+    OR
+    bwameth.py index mem2 $REF #For BWA-MEM2
 """
 from __future__ import print_function
 import tempfile
@@ -204,16 +215,28 @@ def convert_fasta(ref_fasta, just_name=False):
     return out_fa
 
 
-def bwa_index(fa):
-    if is_newer_b(fa, (fa + '.amb', fa + '.sa')):
-        return
-    sys.stderr.write("indexing: %s\n" % fa)
-    try:
-        run("bwa index -a bwtsw %s" % fa)
-    except:
-        if op.exists(fa + ".amb"):
-            os.unlink(fa + ".amb")
-        raise
+def bwa_index(fa, ver = "mem"):
+
+    if ver == "mem":
+        if is_newer_b(fa, (fa + '.amb', fa + '.sa')):
+            return
+        sys.stderr.write("indexing with bwa-mem: %s\n" % fa)
+        try:
+            run("bwa index -a bwtsw %s" % fa)
+        except:
+            if op.exists(fa + ".amb"):
+                os.unlink(fa + ".amb")
+            raise
+    else:
+        if is_newer_b(fa, (fa + '.amb', fa + '.pac')):
+            return
+        sys.stderr.write("indexing with bwa-mem2: %s\n" % fa)
+        try:
+            run("bwa-mem2 index %s" % fa)
+        except:
+            if op.exists(fa + ".amb"):
+                os.unlink(fa + ".amb")
+            raise
 
 class Bam(object):
     __slots__ = 'read flag chrom pos mapq cigar chrom_mate pos_mate tlen \
@@ -311,8 +334,20 @@ def rname(fq1, fq2=""):
 def bwa_mem(fa, fq_convert_cmd, extra_args, threads=1, rg=None,
             paired=True, set_as_failed=None, do_not_penalize_chimeras=False):
     conv_fa = convert_fasta(fa, just_name=True)
-    if not is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.sa')):
-        raise BWAMethException("first run bwameth.py index %s" % fa)
+
+    if is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.sa')):
+        idx = "mem1"
+        sys.stderr.write("--------------------\n")
+        sys.stderr.write("Found BWA MEM index\n")
+        
+    elif is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.pac')):
+        idx = "mem2"
+        sys.stderr.write("---------------------\n")
+        sys.stderr.write("Found BWA MEM2 index\n")
+        
+    else:
+        raise BWAMethException("first run bwameth.py index %s OR bwameth.py index mem2 %s" % (fa, fa))
+
 
     if not rg is None and not rg.startswith('@RG'):
         rg = '@RG\\tID:{rg}\\tSM:{rg}'.format(rg=rg)
@@ -321,13 +356,17 @@ def bwa_mem(fa, fq_convert_cmd, extra_args, threads=1, rg=None,
     cmd = ("|%s " % fq_convert_cmd)
 
     # penalize clipping and unpaired. lower penalty on mismatches (-B)
-    cmd += "|bwa mem -T 40 -B 2 -L 10 -CM "
+    if idx == "mem2":
+        cmd += "|bwa-mem2 mem -T 40 -B 2 -L 10 -CM "
+    else:
+        cmd += "|bwa mem -T 40 -B 2 -L 10 -CM "
 
     if paired:
         cmd += ("-U 100 -p ")
     cmd += "-R '{rg}' -t {threads} {extra_args} {conv_fa} -"
     cmd = cmd.format(**locals())
     sys.stderr.write("running: %s\n" % cmd.lstrip("|"))
+    sys.stderr.write("--------------------\n")
     as_bam(cmd, fa, set_as_failed, do_not_penalize_chimeras)
 
 
@@ -465,10 +504,13 @@ def convert_fqs(fqs):
                       else ','.join(['NA'] * len(fqs[0].split(","))))
 
 def main(args=sys.argv[1:]):
-
+    
     if len(args) > 0 and args[0] == "index":
-        assert len(args) == 2, ("must specify fasta as 2nd argument")
-        sys.exit(bwa_index(convert_fasta(args[1])))
+        if len(args) == 2:
+            sys.exit(bwa_index(convert_fasta(args[1])))
+        elif len(args) == 3:
+            assert args[1] == "mem2", ("must specify mem2 as first argument and fasta as 2nd argument")
+            sys.exit(bwa_index(convert_fasta(args[2]), ver = "mem2"))
 
     if len(args) > 0 and args[0] == "c2t":
         sys.exit(convert_reads(args[1], args[2]))
@@ -510,6 +552,7 @@ def main(args=sys.argv[1:]):
             paired=(len(args.fastqs) == 2 or args.interleaved),
             set_as_failed=args.set_as_failed,
             do_not_penalize_chimeras=args.do_not_penalize_chimeras)
+    
 
 if __name__ == "__main__":
     main(sys.argv[1:])
