@@ -59,7 +59,7 @@ The commands:
 ```bash
 bwameth.py index $REF #Indexes with BWA-MEM (default)
     #OR
-bwameth.py index mem2 $REF #Indexes with BWA-MEM2
+bwameth.py index-mem2 $REF #Indexes with BWA-MEM2
 
 bwameth.py --reference $REF some_R1.fastq.gz some_R2.fastq.gz > some.output.sam
 ```
@@ -128,7 +128,7 @@ One time only, you need to index a reference sequence.
 
     bwameth.py index $REF #Indexes with BWA-MEM (default)
     #OR
-    bwameth.py index mem2 $REF #Indexes with BWA-MEM2
+    bwameth.py index-mem2 $REF #Indexes with BWA-MEM2
 
 If your reference is `some.fasta`, this will create `some.c2t.fasta`
 and all of the bwa indexes associated with it.

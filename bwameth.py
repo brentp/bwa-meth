@@ -22,7 +22,7 @@ bwa-meth supports indexes from BWA-MEM and BWA-MEM2.
 
     bwameth.py index $REF #For BWA-MEM (default)
     OR
-    bwameth.py index mem2 $REF #For BWA-MEM2
+    bwameth.py index-mem2 $REF #For BWA-MEM2
 """
 from __future__ import print_function
 import tempfile
@@ -346,7 +346,7 @@ def bwa_mem(fa, fq_convert_cmd, extra_args, threads=1, rg=None,
         sys.stderr.write("Found BWA MEM2 index\n")
         
     else:
-        raise BWAMethException("first run bwameth.py index %s OR bwameth.py index mem2 %s" % (fa, fa))
+        raise BWAMethException("first run bwameth.py index %s OR bwameth.py index-mem2 %s" % (fa, fa))
 
 
     if not rg is None and not rg.startswith('@RG'):
@@ -505,12 +505,16 @@ def convert_fqs(fqs):
 
 def main(args=sys.argv[1:]):
     
-    if len(args) > 0 and args[0] == "index":
-        if len(args) == 2:
+    if len(args) > 0:
+        assert len(args) == 2, ("must specify fasta as 2nd argument")
+        if args[0] == "index":
             sys.exit(bwa_index(convert_fasta(args[1])))
-        elif len(args) == 3:
-            assert args[1] == "mem2", ("must specify mem2 as first argument and fasta as 2nd argument")
-            sys.exit(bwa_index(convert_fasta(args[2]), ver = "mem2"))
+        elif args[0] == "index-mem2":
+            sys.exit(bwa_index(convert_fasta(args[1]), ver = "mem2"))
+        else:
+            sys.stderr.write("ERROR! First argument can only be: index OR index-mem2\n")
+            sys.exit(1)
+
 
     if len(args) > 0 and args[0] == "c2t":
         sys.exit(convert_reads(args[1], args[2]))
