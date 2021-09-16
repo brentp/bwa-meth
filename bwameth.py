@@ -504,17 +504,14 @@ def convert_fqs(fqs):
                       else ','.join(['NA'] * len(fqs[0].split(","))))
 
 def main(args=sys.argv[1:]):
-    
-    if len(args) > 0:
-        assert len(args) == 2, ("must specify fasta as 2nd argument")
-        if args[0] == "index":
-            sys.exit(bwa_index(convert_fasta(args[1])))
-        elif args[0] == "index-mem2":
-            sys.exit(bwa_index(convert_fasta(args[1]), ver = "mem2"))
-        else:
-            sys.stderr.write("ERROR! First argument can only be: index OR index-mem2\n")
-            sys.exit(1)
 
+    if len(args) > 0 and args[0] == "index":
+        assert len(args) == 2, ("must specify fasta as 2nd argument")
+        sys.exit(bwa_index(convert_fasta(args[1])))
+
+    if len(args) > 0 and args[0] == "index-mem2":
+        assert len(args) == 2, ("must specify fasta as 2nd argument")
+        sys.exit(bwa_index(convert_fasta(args[1]), ver = "mem2"))
 
     if len(args) > 0 and args[0] == "c2t":
         sys.exit(convert_reads(args[1], args[2]))
