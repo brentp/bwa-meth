@@ -19,7 +19,7 @@ def get_version(path):
     except StopIteration:
         raise ValueError("version could not be located")
 
-install_requires = ['toolshed']
+install_requires = ['toolshed>=0.4.5']
 if sys.version_info[:2] < (2, 7):
     install_requires.extend(["argparse", "ordereddict"])
 
