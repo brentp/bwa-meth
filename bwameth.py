@@ -46,7 +46,7 @@ except ImportError: # python3
 import toolshed
 from toolshed import nopen, reader, is_newer_b
 
-__version__ = "0.2.3"
+__version__ = "0.2.4"
 
 def nopen_keep_parent_stdin(f, mode="r"):
 
@@ -363,7 +363,7 @@ def bwa_mem(fa, fq_convert_cmd, extra_args, threads=1, rg=None,
 
     if paired:
         cmd += ("-U 100 -p ")
-    cmd += "-R '{rg}' -t {threads} {extra_args} {conv_fa} -"
+    cmd += "-R '{rg}' -t {threads} {extra_args} {conv_fa} /dev/stdin"
     cmd = cmd.format(**locals())
     sys.stderr.write("running: %s\n" % cmd.lstrip("|"))
     sys.stderr.write("--------------------\n")
