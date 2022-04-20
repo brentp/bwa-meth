@@ -397,7 +397,7 @@ def handle_header(line, out=sys.stdout):
     if toks[0].startswith("@SQ"):
         sq, sn, ln = toks  # @SQ    SN:fchr11    LN:122082543
         # we have f and r, only print out f
-        chrom = sn.split(":")[1]
+        chrom = sn.split(":", 1)[1]
         if chrom.startswith('r'): return
         chrom = chrom[1:]
         toks = ["%s\tSN:%s\t%s" % (sq, chrom, ln)]
