@@ -417,13 +417,15 @@ def handle_reads(alns, set_as_failed, do_not_penalize_chimeras):
         # don't need this any more.
         aln.other = [x for x in aln.other if not x.startswith('YS:Z')]
 
+        if not aln.is_mapped():
+            aln.seq = orig_seq
+            if len(aln.chrom) > 1 and aln.chrom[0] in 'fr':
+                aln.chrom = aln.chrom[1:]
+            continue
+
         # first letter of chrom is 'f' or 'r'
         direction = aln.chrom[0]
         aln.chrom = aln.chrom[1:]
-
-        if not aln.is_mapped():
-            aln.seq = orig_seq
-            continue
 
         assert direction in 'fr', (direction, aln)
         aln.other.append('YD:Z:' + direction)
