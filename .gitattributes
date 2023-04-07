@@ -1,0 +1,6 @@
+*.eps linguist-detectable=false
+*.tex linguist-detectable=false
+*.bst linguist-detectable=false
+*.bib linguist-detectable=false
+*.sty linguist-detectable=false
+
