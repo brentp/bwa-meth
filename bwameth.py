@@ -540,8 +540,10 @@ def main(args=sys.argv[1:]):
             "multiple sets separated by commas, e.g. ... a_R1.fastq,b_R1.fastq"
             " a_R2.fastq,b_R2.fastq note that the order must be maintained.")
 
+    # need to escape '%' in help text to avoid problems with --help,
+    # see https://github.com/brentp/bwa-meth/issues/85
     p.add_argument('--do-not-penalize-chimeras', action='store_true', help="do not use the heuristic" 
-            " that if the longest match is not 44% of the sequence length, we mark"
+            " that if the longest match is not 44%% of the sequence length, we mark"
             " it as failed QC and un-pair it, and set all members of pair to unmapped")
 
     args, pass_through_args = p.parse_known_args(args)
