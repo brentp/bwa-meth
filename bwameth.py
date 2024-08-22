@@ -314,7 +314,7 @@ class Bam(object):
     def ga_ct(self):
         return [x for x in self.other if x.startswith("YC:Z:")]
 
-    def longest_match(self, patt=re.compile("\d+M")):
+    def longest_match(self, patt=re.compile(r"\d+M")):
         return max(int(x[:-1]) for x in patt.findall(self.cigar))
 
 
