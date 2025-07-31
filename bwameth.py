@@ -332,21 +332,22 @@ def rname(fq1, fq2=""):
 
 
 def bwa_mem(fa, fq_convert_cmd, extra_args, threads=1, rg=None,
-            paired=True, set_as_failed=None, do_not_penalize_chimeras=False):
+            paired=True, set_as_failed=None, do_not_penalize_chimeras=False, skip_time_checks=False):
     conv_fa = convert_fasta(fa, just_name=True)
 
-    if is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.sa')):
-        idx = "mem1"
-        sys.stderr.write("--------------------\n")
-        sys.stderr.write("Found BWA MEM index\n")
-        
-    elif is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.pac')):
-        idx = "mem2"
-        sys.stderr.write("---------------------\n")
-        sys.stderr.write("Found BWA MEM2 index\n")
-        
-    else:
-        raise BWAMethException("first run bwameth.py index %s OR bwameth.py index-mem2 %s OR make sure the modification time on the generated c2t files is newer than on the .fa file" % (fa, fa))
+    if not skip_time_checks:
+        if is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.sa')):
+            idx = "mem1"
+            sys.stderr.write("--------------------\n")
+            sys.stderr.write("Found BWA MEM index\n")
+            
+        elif is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.pac')):
+            idx = "mem2"
+            sys.stderr.write("---------------------\n")
+            sys.stderr.write("Found BWA MEM2 index\n")
+            
+        else:
+            raise BWAMethException("first run bwameth.py index %s OR bwameth.py index-mem2 %s OR make sure the modification time on the generated c2t files is newer than on the .fa file" % (fa, fa))
 
 
     if not rg is None and not rg.startswith('@RG'):
@@ -551,12 +552,15 @@ def main(args=sys.argv[1:]):
     # for the 2nd file. use G => A and bwa's support for streaming.
     conv_fqs_cmd = convert_fqs(args.fastqs)
 
+    skip_time_checks = bool(os.environ.get("BWA_METH_SKIP_TIME_CHECKS", False))
+
     bwa_mem(args.reference, conv_fqs_cmd, ' '.join(map(str, pass_through_args)),
             threads=args.threads,
             rg=args.read_group or rname(*args.fastqs),
             paired=(len(args.fastqs) == 2 or args.interleaved),
             set_as_failed=args.set_as_failed,
-            do_not_penalize_chimeras=args.do_not_penalize_chimeras)
+            do_not_penalize_chimeras=args.do_not_penalize_chimeras,
+            skip_time_checks=skip_time_checks)
     
 
 if __name__ == "__main__":
