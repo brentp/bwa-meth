@@ -337,7 +337,6 @@ def bwa_mem(fa, fq_convert_cmd, extra_args, threads=1, rg=None,
 
     if skip_time_checks:
         # Skip timestamp checks but still detect index type
-        import os
         if os.path.exists(conv_fa + '.amb') and os.path.exists(conv_fa + '.sa'):
             idx = "mem1"
             sys.stderr.write("--------------------\n")
