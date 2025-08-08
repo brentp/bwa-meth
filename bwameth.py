@@ -335,7 +335,22 @@ def bwa_mem(fa, fq_convert_cmd, extra_args, threads=1, rg=None,
             paired=True, set_as_failed=None, do_not_penalize_chimeras=False, skip_time_checks=False):
     conv_fa = convert_fasta(fa, just_name=True)
 
-    if not skip_time_checks:
+    if skip_time_checks:
+        # Skip timestamp checks but still detect index type
+        import os
+        if os.path.exists(conv_fa + '.amb') and os.path.exists(conv_fa + '.sa'):
+            idx = "mem1"
+            sys.stderr.write("--------------------\n")
+            sys.stderr.write("Found BWA MEM index\n")
+
+        elif os.path.exists(conv_fa + '.amb') and os.path.exists(conv_fa + '.pac'):
+            idx = "mem2"
+            sys.stderr.write("---------------------\n")
+            sys.stderr.write("Found BWA MEM2 index\n")
+
+        else:
+            raise BWAMethException("first run bwameth.py index %s OR bwameth.py index-mem2 %s" % (fa, fa))
+    else:
         if is_newer_b(conv_fa, (conv_fa + '.amb', conv_fa + '.sa')):
             idx = "mem1"
             sys.stderr.write("--------------------\n")
