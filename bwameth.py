@@ -103,7 +103,7 @@ def fasta_iter(fasta_name):
         header = next(header)[1:].strip()
         yield header, "".join(s.strip() for s in next(faiter)).upper()
 
-def convert_reads(fq1s, fq2s, out=sys.stdout):
+def convert_reads(fq1s, fq2s, out=sys.stdout, cpg_only=False):
 
     for fq1, fq2 in zip(fq1s.split(","), fq2s.split(",")):
         sys.stderr.write("converting reads in %s,%s\n" % (fq1, fq2))
@@ -141,7 +141,7 @@ def convert_reads(fq1s, fq2s, out=sys.stdout):
 
         for read_i, (name, seq, _, qual) in enumerate(selected_iter):
             if name is None: continue
-            convert_and_write_read(name,seq,qual,read_i%2,out)
+            convert_and_write_read(name,seq,qual,read_i%2,out,cpg_only=cpg_only)
             if len(seq) < 80:
                 lt80 += 1
 
@@ -151,7 +151,7 @@ def convert_reads(fq1s, fq2s, out=sys.stdout):
         sys.stderr.write("       : this program is designed for long reads\n")
     return 0
 
-def convert_and_write_read(name,seq,qual,read_i,out):
+def convert_and_write_read(name,seq,qual,read_i,out,cpg_only=False):
 
     name = name.rstrip("\r\n").split(" ")[0]
     if name[0] != "@":
@@ -173,11 +173,14 @@ def convert_and_write_read(name,seq,qual,read_i,out):
     name = " ".join((name,
                      "YS:Z:" + seq +
                      "\tYC:Z:" + char_a + char_b + '\n'))
-    seq = seq.replace(char_a, char_b)
+    if cpg_only:
+        seq = seq.replace("CG", "TG") if read_i == 0 else seq.replace("CG", "CA")
+    else:
+        seq = seq.replace(char_a, char_b)
     out.write("".join((name, seq, "\n+\n", qual)))
 
-def convert_fasta(ref_fasta, just_name=False):
-    out_fa = ref_fasta + ".bwameth.c2t"
+def convert_fasta(ref_fasta, just_name=False, cpg_only=False):
+    out_fa = ref_fasta + (".bwameth.cpg.c2t" if cpg_only else ".bwameth.c2t")
     if just_name:
         return out_fa
     msg = "c2t in %s to %s" % (ref_fasta, out_fa)
@@ -190,20 +193,21 @@ def convert_fasta(ref_fasta, just_name=False):
         for header, seq in fasta_iter(ref_fasta):
             ########### Reverse ######################
             fh.write(">r%s\n" % header)
-
-            #if non_cpg_only:
-            #    for ctx in "TAG": # use "ATC" for fwd
-            #        seq = seq.replace('G' + ctx, "A" + ctx)
-            #    for line in wrap(seq):
-            #        print >>fh, line
-            #else:
-            for line in wrap(seq.replace("G", "A")):
-                fh.write(line + '\n')
+            if cpg_only:
+                for line in wrap(seq.replace("CG", "CA")):
+                    fh.write(line + '\n')
+            else:
+                for line in wrap(seq.replace("G", "A")):
+                    fh.write(line + '\n')
 
             ########### Forward ######################
             fh.write(">f%s\n" % header)
-            for line in wrap(seq.replace("C", "T")):
-                fh.write(line + '\n')
+            if cpg_only:
+                for line in wrap(seq.replace("CG", "TG")):
+                    fh.write(line + '\n')
+            else:
+                for line in wrap(seq.replace("C", "T")):
+                    fh.write(line + '\n')
         fh.close()
     except:
         try:
@@ -332,8 +336,9 @@ def rname(fq1, fq2=""):
 
 
 def bwa_mem(fa, fq_convert_cmd, extra_args, threads=1, rg=None,
-            paired=True, set_as_failed=None, do_not_penalize_chimeras=False, skip_time_checks=False):
-    conv_fa = convert_fasta(fa, just_name=True)
+            paired=True, set_as_failed=None, do_not_penalize_chimeras=False, skip_time_checks=False,
+            cpg_only=False):
+    conv_fa = convert_fasta(fa, just_name=True, cpg_only=cpg_only)
 
     if skip_time_checks:
         # Skip timestamp checks but still detect index type
@@ -514,24 +519,32 @@ write.table(df, row.names=FALSE, quote=FALSE, sep="\t")
             print("\t".join(d))
 
 
-def convert_fqs(fqs):
+def convert_fqs(fqs, cpg_only=False):
     script = __file__
-    return "%s %s c2t %s %s" % (sys.executable, script, fqs[0],
+    cmd = "%s %s c2t %s %s" % (sys.executable, script, fqs[0],
                fqs[1] if len(fqs) > 1
                       else ','.join(['NA'] * len(fqs[0].split(","))))
+    if cpg_only:
+        cmd += " --cpg-only"
+    return cmd
 
 def main(args=sys.argv[1:]):
 
     if len(args) > 0 and args[0] == "index":
-        assert len(args) == 2, ("must specify fasta as 2nd argument")
-        sys.exit(bwa_index(convert_fasta(args[1])))
+        cpg_only = "--cpg-only" in args
+        idx_args = [a for a in args[1:] if a != "--cpg-only"]
+        assert len(idx_args) == 1, ("must specify fasta as 2nd argument")
+        sys.exit(bwa_index(convert_fasta(idx_args[0], cpg_only=cpg_only)))
 
     if len(args) > 0 and args[0] == "index-mem2":
-        assert len(args) == 2, ("must specify fasta as 2nd argument")
-        sys.exit(bwa_index(convert_fasta(args[1]), ver = "mem2"))
+        cpg_only = "--cpg-only" in args
+        idx_args = [a for a in args[1:] if a != "--cpg-only"]
+        assert len(idx_args) == 1, ("must specify fasta as 2nd argument")
+        sys.exit(bwa_index(convert_fasta(idx_args[0], cpg_only=cpg_only), ver = "mem2"))
 
     if len(args) > 0 and args[0] == "c2t":
-        sys.exit(convert_reads(args[1], args[2]))
+        cpg_only = "--cpg-only" in args
+        sys.exit(convert_reads(args[1], args[2], cpg_only=cpg_only))
 
     if len(args) > 0 and args[0] == "cnvs":
         sys.exit(cnvs_main(args[1:]))
@@ -557,14 +570,17 @@ def main(args=sys.argv[1:]):
 
     # need to escape '%' in help text to avoid problems with --help,
     # see https://github.com/brentp/bwa-meth/issues/85
-    p.add_argument('--do-not-penalize-chimeras', action='store_true', help="do not use the heuristic" 
+    p.add_argument('--do-not-penalize-chimeras', action='store_true', help="do not use the heuristic"
             " that if the longest match is not 44%% of the sequence length, we mark"
             " it as failed QC and un-pair it, and set all members of pair to unmapped")
+
+    p.add_argument('--cpg-only', action='store_true', default=False,
+            help="only convert cytosines in CpG context (for CDA-based methods)")
 
     args, pass_through_args = p.parse_known_args(args)
 
     # for the 2nd file. use G => A and bwa's support for streaming.
-    conv_fqs_cmd = convert_fqs(args.fastqs)
+    conv_fqs_cmd = convert_fqs(args.fastqs, cpg_only=args.cpg_only)
 
     skip_time_checks = bool(os.environ.get("BWA_METH_SKIP_TIME_CHECKS", False))
 
@@ -574,7 +590,8 @@ def main(args=sys.argv[1:]):
             paired=(len(args.fastqs) == 2 or args.interleaved),
             set_as_failed=args.set_as_failed,
             do_not_penalize_chimeras=args.do_not_penalize_chimeras,
-            skip_time_checks=skip_time_checks)
+            skip_time_checks=skip_time_checks,
+            cpg_only=args.cpg_only)
     
 
 if __name__ == "__main__":
