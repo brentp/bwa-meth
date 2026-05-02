@@ -170,9 +170,9 @@ def convert_and_write_read(name,seq,qual,read_i,out):
 
     char_a, char_b = ['CT', 'GA'][read_i]
     # keep original sequence as name.
-    name = " ".join((name,
-                     "YS:Z:" + seq +
-                     "\tYC:Z:" + char_a + char_b + '\n'))
+    name = "\t".join((name,
+                     "YS:Z:" + seq,
+                     "YC:Z:" + char_a + char_b)) + '\n'
     seq = seq.replace(char_a, char_b)
     out.write("".join((name, seq, "\n+\n", qual)))
 
