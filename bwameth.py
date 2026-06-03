@@ -429,6 +429,110 @@ def handle_header(line, out=sys.stdout):
     out.write("\t".join(toks) + "\n")
 
 
+def _is_strand_ambiguous(aln):
+    """Check if a MAPQ 0 alignment is only ambiguous due to f/r strand copies.
+
+    BWA reports MAPQ 0 when a read maps equally well to multiple locations.
+    In CpG-only mode, regions without CpGs produce identical f and r reference
+    copies, so a read maps to both with equal score. This is not a true
+    multi-map -- the genomic position is unique, only the strand is ambiguous.
+
+    Returns True if the XA tag only contains hits to the same position on the
+    opposite strand copy (f<->r of the same chrom).
+    """
+    if int(aln.mapq) != 0:
+        return False
+    xa = None
+    for tag in aln.other:
+        if tag.startswith('XA:Z:'):
+            xa = tag[5:]
+            break
+    if not xa:
+        return False
+
+    chrom = aln.chrom  # still has f/r prefix at this point
+    pos = aln.pos
+    if len(chrom) < 2 or chrom[0] not in 'fr':
+        return False
+
+    opposite = ('r' if chrom[0] == 'f' else 'f') + chrom[1:]
+
+    for hit in xa.rstrip(';').split(';'):
+        if not hit:
+            continue
+        parts = hit.split(',')
+        if len(parts) < 4:
+            return False
+        hit_chrom = parts[0]
+        hit_pos = abs(int(parts[1]))
+        if hit_chrom != opposite or hit_pos != pos:
+            return False
+    return True
+
+
+def _compute_rescued_mapq(aln):
+    """Compute MAPQ for strand-rescued reads using BWA's formula.
+
+    Finds the next-best non-strand alternative from the XA tag and uses
+    the score gap to determine confidence, matching BWA's own MAPQ logic.
+    BWA scoring with -B 2: match=1, mismatch cost=3 (lose match + penalty).
+    """
+    as_score = None
+    nm_primary = None
+    xa = None
+
+    for tag in aln.other:
+        if tag.startswith('AS:i:'):
+            as_score = int(tag[5:])
+        elif tag.startswith('NM:i:'):
+            nm_primary = int(tag[5:])
+        elif tag.startswith('XA:Z:'):
+            xa = tag[5:]
+
+    if as_score is None:
+        return '40'
+
+    read_length = len(aln.seq)
+    chrom = aln.chrom
+    pos = aln.pos
+    base_chrom = chrom[1:] if len(chrom) > 1 else chrom
+
+    third_best_nm = None
+    if xa:
+        for hit in xa.rstrip(';').split(';'):
+            if not hit:
+                continue
+            parts = hit.split(',')
+            if len(parts) < 4:
+                continue
+            hit_chrom = parts[0]
+            hit_pos = abs(int(parts[1]))
+            hit_nm = int(parts[3])
+
+            hit_base = hit_chrom[1:] if len(hit_chrom) > 1 else hit_chrom
+            if hit_base == base_chrom and hit_pos == pos:
+                continue
+
+            if third_best_nm is None or hit_nm < third_best_nm:
+                third_best_nm = hit_nm
+
+    if third_best_nm is not None:
+        sub_score = max(0, read_length - (third_best_nm * 3))
+    else:
+        sub_score = 19
+
+    if nm_primary is not None:
+        identity = max(0.0, (read_length - nm_primary) / read_length)
+    else:
+        identity = 0.95
+
+    score_diff = max(0, as_score - sub_score)
+    mapq = min(60, int(6.02 * score_diff * identity * identity))
+    mapq = max(1, mapq)
+
+    return str(mapq)
+
+
 def handle_reads(alns, set_as_failed, do_not_penalize_chimeras):
 
     for aln in alns:
@@ -442,6 +546,11 @@ def handle_reads(alns, set_as_failed, do_not_penalize_chimeras):
             if len(aln.chrom) > 1 and aln.chrom[0] in 'fr':
                 aln.chrom = aln.chrom[1:]
             continue
+
+        # rescue strand-ambiguous alignments before stripping the f/r prefix
+        if _is_strand_ambiguous(aln):
+            aln.mapq = _compute_rescued_mapq(aln)
+            aln.other.append('YA:Z:strand_rescued')
 
         # first letter of chrom is 'f' or 'r'
         direction = aln.chrom[0]
