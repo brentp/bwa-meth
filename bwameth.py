@@ -138,20 +138,35 @@ def convert_reads(fq1s, fq2s, out=sys.stdout):
 
         already_interleaved = base_read_name(r1_header) == base_read_name(r2_header)
 
-        # Detect the mate-naming convention once per file
-        suffix_len = mate_suffix_len(read_name(r1_header))
+        r1_name = read_name(r1_header)
+        r1_suffix_len = mate_suffix_len(r1_name)
 
         q1_iter = izip(*[chain.from_iterable([first_five,fq1])] * 4)
 
         if fq2 != "NA":
             fq2 = nopen(fq2)
-            q2_iter = izip(*[fq2] * 4)
+            first_line_fq2 = list(islice(fq2, 1))
+            r2_mate_header = first_line_fq2[0] if first_line_fq2 else None
+            q2_iter = izip(*[chain.from_iterable([first_line_fq2, fq2])] * 4)
         else:
             if already_interleaved:
                 sys.stderr.write("detected interleaved fastq\n")
+                r2_mate_header = r2_header
             else:
                 sys.stderr.write("WARNING: running bwameth in single-end mode\n")
+                r2_mate_header = None
             q2_iter = repeat((None, None, None, None))
+
+        if r2_mate_header is not None:
+            r2_name = read_name(r2_mate_header)
+            r2_suffix_len = mate_suffix_len(r2_name)
+            if r2_suffix_len != r1_suffix_len:
+                sys.stderr.write(
+                    "ERROR: read1 and read2 mate-name suffixes don't match "
+                    "(read1 %r -> suffix_len=%d, read2 %r -> suffix_len=%d)\n"
+                    % (r1_name, r1_suffix_len, r2_name, r2_suffix_len)
+                )
+                sys.exit(1)
 
         lt80 = 0
 
@@ -162,7 +177,7 @@ def convert_reads(fq1s, fq2s, out=sys.stdout):
 
         for read_i, (name, seq, _, qual) in enumerate(selected_iter):
             if name is None: continue
-            convert_and_write_read(name,seq,qual,read_i%2,out,suffix_len)
+            convert_and_write_read(name,seq,qual,read_i%2,out,r1_suffix_len)
             if len(seq) < 80:
                 lt80 += 1
 
